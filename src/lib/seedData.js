@@ -1,0 +1,298 @@
+export const initialMembers = [
+  {
+    id: 'M001',
+    name: '김태형',
+    age: 34,
+    gender: 'M',
+    job: '삼성전자 무선사업부 책임',
+    income: '1.2억',
+    edu: '연세대 학사',
+    height: 178,
+    weight: 74,
+    bodyType: '슬림탄탄',
+    assets: '금융 3.8억 / 부동산 8.5억',
+    family: '중상',
+    appearanceNote: '호감형 / 단정한 인상',
+    location: '서울 송파구',
+    verifyLevel: 'Lv4',
+    verifyItems: ['본인', '재직', '소득', '학력', '가족'],
+    saju: {
+      profile: '책임감이 강하고 안정지향적. 초반 호감 형성은 느리나 장기적인 신뢰 구축에 유리한 편.',
+    },
+    grade: {
+      overallScore: 93.8,
+      categories: {
+        overall: { score: 93.8, percentile: '상위 1%', badge: 'TOP 1%' },
+        wealth: { score: 95.4, percentile: '상위 0.1%', badge: 'TOP 0.1%' },
+        appearance: { score: 82.1, percentile: '상위 10%', badge: 'TOP 10%' },
+        family: { score: 87.5, percentile: '상위 5%', badge: 'TOP 5%' },
+        career: { score: 91.2, percentile: '상위 1%', badge: 'TOP 1%' },
+      },
+      badges: ['TOP 0.1% 자산', 'TOP 1% 종합', 'TOP 1% 직업', 'TOP 5% 집안'],
+    },
+    values: ['안정지향', '비흡연', '자녀희망'],
+    status: '소개 가능',
+    manager: '이팀장',
+    lastContact: '3일 전',
+    nextAction: '오늘 16:00',
+    profileCompletion: 92,
+    outboundProposals: 4,
+  },
+  {
+    id: 'M002',
+    name: '박지연',
+    age: 31,
+    gender: 'F',
+    job: '외국계 제약사 마케팅',
+    income: '8,500만',
+    edu: '이화여대 석사',
+    height: 165,
+    weight: 52,
+    bodyType: '슬림',
+    assets: '금융 2.2억 / 부동산 3.1억',
+    family: '중상',
+    appearanceNote: '세련형 / 관리 우수',
+    location: '서울 강남구',
+    verifyLevel: 'VIP',
+    verifyItems: ['대면검증', '본인', '재직', '소득', '학력', '가족', '자산'],
+    saju: {
+      profile: '감정 표현이 솔직하고 에너지가 좋음. 관계에서 활력과 템포가 중요한 타입.',
+    },
+    grade: {
+      overallScore: 89.6,
+      categories: {
+        overall: { score: 89.6, percentile: '상위 5%', badge: 'TOP 5%' },
+        wealth: { score: 84.4, percentile: '상위 10%', badge: 'TOP 10%' },
+        appearance: { score: 96.2, percentile: '상위 0.1%', badge: 'TOP 0.1%' },
+        family: { score: 86.8, percentile: '상위 5%', badge: 'TOP 5%' },
+        career: { score: 88.9, percentile: '상위 5%', badge: 'TOP 5%' },
+      },
+      badges: ['TOP 0.1% 외모', 'TOP 5% 종합', 'TOP 5% 집안'],
+    },
+    values: ['활동적', '골프', '맞벌이 선호'],
+    status: '소개 진행중',
+    manager: '최수석',
+    lastContact: '오늘',
+    nextAction: '내일 11:00',
+    profileCompletion: 98,
+    outboundProposals: 7,
+  },
+  {
+    id: 'M003',
+    name: '정소민',
+    age: 33,
+    gender: 'F',
+    job: '대기업 HR',
+    income: '9,000만',
+    edu: '서강대 학사',
+    height: 167,
+    weight: 55,
+    bodyType: '균형형',
+    assets: '금융 1.4억 / 부동산 없음',
+    family: '중',
+    appearanceNote: '단아형 / 안정감 있는 이미지',
+    location: '서울 용산구',
+    verifyLevel: 'Lv3',
+    verifyItems: ['본인', '재직', '학력'],
+    saju: {
+      profile: '기준이 뚜렷하고 생활 질서가 중요함. 안정적이고 감정 기복이 크지 않은 관계를 선호.',
+    },
+    grade: {
+      overallScore: 81.9,
+      categories: {
+        overall: { score: 81.9, percentile: '상위 10%', badge: 'TOP 10%' },
+        wealth: { score: 71.2, percentile: '상위 20%', badge: null },
+        appearance: { score: 87.1, percentile: '상위 5%', badge: 'TOP 5%' },
+        family: { score: 78.4, percentile: '상위 10%', badge: 'TOP 10%' },
+        career: { score: 83.7, percentile: '상위 10%', badge: 'TOP 10%' },
+      },
+      badges: ['TOP 5% 외모', 'TOP 10% 종합'],
+    },
+    values: ['실속형', '비흡연', '종교없음'],
+    status: '보류',
+    manager: '이팀장',
+    lastContact: '7일 전',
+    nextAction: '재컨택 필요',
+    profileCompletion: 81,
+    outboundProposals: 2,
+  },
+];
+
+export const networkMembers = [
+  {
+    id: 'N-8421',
+    agency: '노블레스 에스',
+    ageRange: '30대 초반',
+    gender: 'F',
+    jobCategory: '전문직 (의료)',
+    incomeRange: '1.5억 이상',
+    eduRange: '명문대/의대',
+    heightRange: '160~165cm',
+    location: '서울 서초구',
+    verifyLevel: 'VIP',
+    matchScore: 94,
+    rankingBadges: ['TOP 0.1% 자산', 'TOP 1% 종합'],
+    scores: { condition: 96, values: 91, saju: 94, possibility: 82 },
+    recentActivity: '2시간 전',
+    responseRate: '91%',
+    trustScore: 4.8,
+    sajuProfile: '차분하고 자기관리가 좋으며 관계를 신중히 진전시키는 타입.',
+    chemistryNote: 'M001과는 결혼관과 자녀 계획의 흐름이 잘 맞고, 한쪽이 속도를 조절해주면 안정적 호흡이 가능함.',
+    reason: ['자녀 계획 일치', '생활 리듬 안정형', '가족관 유사'],
+    risks: ['종교 여부 추가 확인 필요'],
+    tags: ['#딩크선호', '#자산가집안', '#비흡연'],
+  },
+  {
+    id: 'N-9932',
+    agency: '청담 페어링',
+    ageRange: '30대 중반',
+    gender: 'M',
+    jobCategory: '금융/투자업',
+    incomeRange: '2억 이상',
+    eduRange: '해외대 학사',
+    heightRange: '180cm 이상',
+    location: '서울 강남구',
+    verifyLevel: 'Lv3',
+    matchScore: 78,
+    rankingBadges: ['TOP 5% 자산'],
+    scores: { condition: 84, values: 72, saju: 78, possibility: 76 },
+    recentActivity: '어제',
+    responseRate: '74%',
+    trustScore: 4.2,
+    sajuProfile: '추진력이 좋고 목표지향적이며 관계에서도 주도권을 잡는 편.',
+    chemistryNote: '선택 회원과 에너지 레벨은 비슷하지만 갈등 조정 방식 차이로 초반 조율이 필요함.',
+    reason: ['소득/직군 선호 충족', '활동적 취미 일치'],
+    risks: ['장남 이슈 설명 필요', '갈등 조정 스타일 차이'],
+    tags: ['#기독교', '#골프', '#장남'],
+  },
+  {
+    id: 'N-7710',
+    agency: '더 브릿지',
+    ageRange: '20대 후반',
+    gender: 'F',
+    jobCategory: '교직/공무원',
+    incomeRange: '5,000만~7,000만',
+    eduRange: '수도권 4년제',
+    heightRange: '165~170cm',
+    location: '경기 분당',
+    verifyLevel: 'Lv4',
+    matchScore: 88,
+    rankingBadges: ['TOP 5% 외모', 'TOP 10% 종합'],
+    scores: { condition: 83, values: 90, saju: 88, possibility: 87 },
+    recentActivity: '오늘',
+    responseRate: '89%',
+    trustScore: 4.6,
+    sajuProfile: '가정적이고 생활 감각이 안정적이며 일상 공유형 관계에 강점이 있음.',
+    chemistryNote: '선택 회원과는 생활 루틴과 소비 성향이 잘 맞아 장기 교제형 궁합으로 해석됨.',
+    reason: ['가정관 유사', '소비 성향 조화', '응답률 높음'],
+    risks: ['지역 거리감 일부 존재'],
+    tags: ['#가정적', '#요리', '#부모님노후완료'],
+  },
+  {
+    id: 'N-6204',
+    agency: '압구정 셀렉트',
+    ageRange: '30대 초반',
+    gender: 'F',
+    jobCategory: '변호사/법조',
+    incomeRange: '1억 이상',
+    eduRange: 'SKY 법대/로스쿨',
+    heightRange: '163~168cm',
+    location: '서울 성동구',
+    verifyLevel: 'VIP',
+    matchScore: 90,
+    rankingBadges: ['TOP 1% 직업', 'TOP 5% 종합'],
+    scores: { condition: 92, values: 87, saju: 89, possibility: 90 },
+    recentActivity: '30분 전',
+    responseRate: '95%',
+    trustScore: 4.9,
+    sajuProfile: '현실 판단이 빠르고 커리어 지속 의지가 강하며 균형감 있는 관계를 선호.',
+    chemistryNote: '선택 회원과는 서로의 일과 생활 리듬을 존중하는 구조라 맞벌이 안정형 궁합으로 해석됨.',
+    reason: ['맞벌이 선호 일치', '검증 충실', '업체 응답 속도 우수'],
+    risks: ['주거 지역 선호 조율 필요'],
+    tags: ['#맞벌이', '#비흡연', '#전문직'],
+  },
+];
+
+export const inboxItems = [
+  { id: 'IN-204', agency: '청담 페어링', memberId: 'M002', candidate: 'N-9912', score: 91, status: '검토중', lastAction: '1시간 전', owner: '최수석' },
+  { id: 'IN-188', agency: '더 브릿지', memberId: 'M001', candidate: 'N-7710', score: 88, status: '추가정보 요청', lastAction: '오늘', owner: '이팀장' },
+  { id: 'IN-173', agency: '노블레스 에스', memberId: 'M003', candidate: 'N-8401', score: 82, status: '응답대기', lastAction: '어제', owner: '이팀장' },
+];
+
+export const outboxItems = [
+  { id: 'OUT-311', agency: '노블레스 에스', memberId: 'M001', candidate: 'N-8421', score: 94, status: '열람함', lastAction: '30분 전', owner: '이팀장' },
+  { id: 'OUT-297', agency: '압구정 셀렉트', memberId: 'M002', candidate: 'N-6204', score: 90, status: '회원 확인중', lastAction: '오늘', owner: '최수석' },
+  { id: 'OUT-276', agency: '더 브릿지', memberId: 'M003', candidate: 'N-7710', score: 88, status: '수락', lastAction: '어제', owner: '이팀장' },
+];
+
+export const settlementItems = [
+  { id: 'SET-01', partner: '더 브릿지', pair: 'M003 ↔ N-7710', stage: '소개 완료', amount: '250만', split: '50:50', due: '3월 20일', status: '정산 예정' },
+  { id: 'SET-02', partner: '압구정 셀렉트', pair: 'M002 ↔ N-6204', stage: '교제 진입', amount: '500만', split: '60:40', due: '3월 25일', status: '검수중' },
+  { id: 'SET-03', partner: '노블레스 에스', pair: 'M001 ↔ N-8421', stage: '성사 후보', amount: '700만', split: '50:50', due: '4월 2일', status: '대기' },
+];
+
+export const disputeItems = [
+  { id: 'DSP-14', partner: '청담 페어링', issue: '우회 접촉 의심', level: '주의', updated: '오늘', owner: '운영관리자' },
+  { id: 'DSP-11', partner: '강남 프라이빗', issue: '정산 기준 해석 불일치', level: '중재중', updated: '어제', owner: '대표' },
+  { id: 'DSP-07', partner: '노블레스 라인', issue: '허위 소득 정보 등록', level: '증빙검토', updated: '3일 전', owner: '인증팀' },
+];
+
+export const verifyQueue = [
+  { id: 'VER-51', memberId: 'M002', type: '자산 인증', owner: '인증팀', due: '오늘', status: '원본 검토중' },
+  { id: 'VER-47', memberId: 'M001', type: '가족 인증', owner: '인증팀', due: '내일', status: '서류보완 요청' },
+  { id: 'VER-39', memberId: 'M003', type: '재직 인증', owner: '인증팀', due: '3월 16일', status: '대기' },
+];
+
+export const proposalMessages = [
+  { id: 'MSG-1', sender: '노블레스 에스', role: 'partner', time: '10:24', text: 'M001 관련해서 종교 여부만 추가 확인 부탁드립니다.' },
+  { id: 'MSG-2', sender: '이팀장', role: 'me', time: '10:31', text: '현재 무교로 확인되어 있고 가족관은 안정형입니다. 추가 브리핑 메모 전달 가능합니다.' },
+  { id: 'MSG-3', sender: '노블레스 에스', role: 'partner', time: '10:37', text: '좋습니다. 회원 의사 최종 확인 후 오늘 중 회신드리겠습니다.' },
+];
+
+export const scorePreview = {
+  overallScore: 91.4,
+  categories: {
+    overall: { score: 91.4, percentile: '상위 1%', badge: 'TOP 1%' },
+    wealth: { score: 88.2, percentile: '상위 5%', badge: 'TOP 5%' },
+    appearance: { score: 93.7, percentile: '상위 1%', badge: 'TOP 1%' },
+    family: { score: 79.8, percentile: '상위 10%', badge: 'TOP 10%' },
+    career: { score: 90.6, percentile: '상위 1%', badge: 'TOP 1%' },
+  },
+  badges: ['TOP 1% 종합', 'TOP 1% 외모', 'TOP 1% 직업', 'TOP 5% 자산'],
+};
+
+export const stats = [
+  { label: '관리 회원', value: '142명', tone: 'slate' },
+  { label: '진행중 매칭', value: '18건', tone: 'indigo' },
+  { label: '이번 달 성사', value: '5건', tone: 'emerald' },
+  { label: '정산 예정액', value: '1,250만', tone: 'amber' },
+  { label: 'TOP 1% 회원', value: '14명', tone: 'indigo' },
+  { label: 'TOP 0.1% 배지', value: '3명', tone: 'rose' },
+];
+
+export const tasks = [
+  { title: 'M003 재컨택 필요', meta: '7일 미응답 · 이팀장', tone: 'amber' },
+  { title: '노블레스 에스 제안 검토', meta: '받은 제안 3건', tone: 'indigo' },
+  { title: 'VIP 인증 만료 2건', meta: '7일 내 재검증 필요', tone: 'rose' },
+];
+
+export const timelineItems = [
+  { time: '09:10', title: 'OUT-311 열람됨', desc: '노블레스 에스가 M001 제안을 열람했습니다.' },
+  { time: '10:24', title: '추가정보 요청 수신', desc: '종교/가족관 관련 확인 요청 도착.' },
+  { time: '11:40', title: 'VER-51 검토 업데이트', desc: 'M002 자산 인증 원본 검토 진행중.' },
+  { time: '14:00', title: '정산 검수 예정', desc: 'SET-02 분배 비율 확인 미팅.' },
+];
+
+export const reputationMetrics = [
+  { label: '우리 업체 응답 속도', value: '평균 42분', sub: '상위 12%' },
+  { label: '제안 수락률', value: '68%', sub: '지난달 +9%' },
+  { label: '협업 신뢰 점수', value: '4.7 / 5', sub: '분쟁 건수 낮음' },
+  { label: '회원 소개 전환율', value: '31%', sub: '업계 평균 상회' },
+];
+
+export const kpiSeries = [
+  { label: '1주차', match: 10, intro: 6, close: 2 },
+  { label: '2주차', match: 13, intro: 8, close: 3 },
+  { label: '3주차', match: 11, intro: 7, close: 4 },
+  { label: '4주차', match: 18, intro: 10, close: 5 },
+];
