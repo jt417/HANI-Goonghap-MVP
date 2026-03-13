@@ -14,7 +14,7 @@ export default function OutboxPage() {
 
   useEffect(() => {
     if (!selected && outbox.length > 0) setSelected(outbox[0]);
-  }, [outbox, selected]);
+  }, [outbox]);
 
   const columns = [
     { key: 'agency', label: '상대 업체', width: '1.1fr' },

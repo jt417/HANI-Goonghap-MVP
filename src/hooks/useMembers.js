@@ -89,8 +89,9 @@ export function useMembers() {
 
   const updateMember = useCallback(async (id, updates) => {
     if (!isSupabaseConfigured()) {
-      setMembers(members.map((m) => (m.id === id ? { ...m, ...updates } : m)));
-      if (selectedMyMember?.id === id) setSelectedMyMember({ ...selectedMyMember, ...updates });
+      const store = useAppStore.getState();
+      setMembers(store.members.map((m) => (m.id === id ? { ...m, ...updates } : m)));
+      if (store.selectedMyMember?.id === id) setSelectedMyMember({ ...store.selectedMyMember, ...updates });
       return { error: null };
     }
 
@@ -100,20 +101,21 @@ export function useMembers() {
       .eq('display_id', id);
     if (!err) await fetchMembers();
     return { error: err };
-  }, [members, selectedMyMember]);
+  }, [fetchMembers]);
 
   const deleteMember = useCallback(async (id) => {
     if (!isSupabaseConfigured()) {
-      const filtered = members.filter((m) => m.id !== id);
+      const store = useAppStore.getState();
+      const filtered = store.members.filter((m) => m.id !== id);
       setMembers(filtered);
-      if (selectedMyMember?.id === id && filtered.length > 0) setSelectedMyMember(filtered[0]);
+      if (store.selectedMyMember?.id === id && filtered.length > 0) setSelectedMyMember(filtered[0]);
       return { error: null };
     }
 
     const { error: err } = await supabase.from('members').delete().eq('display_id', id);
     if (!err) await fetchMembers();
     return { error: err };
-  }, [members, selectedMyMember]);
+  }, [fetchMembers]);
 
   const searchMembers = useCallback((query) => {
     if (!query) return members;

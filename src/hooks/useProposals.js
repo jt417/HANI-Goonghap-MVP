@@ -67,7 +67,7 @@ export function useProposals() {
       await fetchOutbox();
     }
     return { error };
-  }, []);
+  }, [fetchInbox, fetchOutbox]);
 
   return {
     inbox,

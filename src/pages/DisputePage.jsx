@@ -14,7 +14,7 @@ export default function DisputePage() {
 
   useEffect(() => {
     if (!selected && items.length > 0) setSelected(items[0]);
-  }, [items, selected]);
+  }, [items]);
 
   const columns = [
     { key: 'partner', label: '상대 업체', width: '1fr' },

@@ -52,7 +52,7 @@ export default function NetworkResultCard({ member, selected, onSelect, onToggle
             <div className="mt-2 flex items-center justify-between"><span>응답률</span><b>{member.responseRate}</b></div>
             <div className="mt-2 flex items-center justify-between"><span>업체 신뢰</span><b>{member.trustScore}</b></div>
           </div>
-          <button onClick={onSelect} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">상세 보기</button>
+          <button onClick={() => onSelect(false)} className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">상세 보기</button>
           <button onClick={onToggleCompare} className={`rounded-xl px-4 py-2 text-sm font-medium ${isCompared ? 'bg-slate-900 text-white' : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'}`}>
             {isCompared ? '비교함 해제' : '비교함 추가'}
           </button>

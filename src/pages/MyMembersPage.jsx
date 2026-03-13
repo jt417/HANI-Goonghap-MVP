@@ -4,15 +4,10 @@ import Badge from '../components/common/Badge';
 import GradeBadge from '../components/common/GradeBadge';
 import GradeScoreCard from '../components/grade/GradeScoreCard';
 import { useMembers } from '../hooks/useMembers';
-import useAppStore from '../stores/appStore';
 
 export default function MyMembersPage({ onOpenRegistration }) {
-  const { items, loading, fetchMembers } = useMembers();
-  const { members: storeMembers, selectedMyMember, setSelectedMyMember } = useAppStore();
+  const { members, loading, fetchMembers, selectedMyMember, setSelectedMyMember } = useMembers();
   const [activeGradeTab, setActiveGradeTab] = useState('overall');
-
-  // Use store members (includes locally added ones) merged with DB members
-  const members = storeMembers;
 
   useEffect(() => {
     fetchMembers();

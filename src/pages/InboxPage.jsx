@@ -14,7 +14,7 @@ export default function InboxPage() {
 
   useEffect(() => {
     if (!selected && inbox.length > 0) setSelected(inbox[0]);
-  }, [inbox, selected]);
+  }, [inbox]);
 
   const columns = [
     { key: 'agency', label: '업체', width: '1.1fr' },

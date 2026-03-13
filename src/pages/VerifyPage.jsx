@@ -14,7 +14,7 @@ export default function VerifyPage() {
 
   useEffect(() => {
     if (!selected && items.length > 0) setSelected(items[0]);
-  }, [items, selected]);
+  }, [items]);
 
   const columns = [
     { key: 'memberId', label: '회원', width: '0.8fr' },
