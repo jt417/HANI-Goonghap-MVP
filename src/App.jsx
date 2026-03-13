@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Sidebar from './components/layout/Sidebar';
 import Header from './components/layout/Header';
+import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import MyMembersPage from './pages/MyMembersPage';
 import NetworkPage from './pages/NetworkPage';
@@ -11,26 +12,32 @@ import SettlementPage from './pages/SettlementPage';
 import DisputePage from './pages/DisputePage';
 import MemberRegistrationModal from './components/member/MemberRegistrationModal';
 import ProposalModal from './components/proposal/ProposalModal';
-import { initialMembers, networkMembers } from './lib/seedData';
-import { defaultScoreRuleWeights, defaultBadgeThresholds } from './lib/constants';
+import { useAuth } from './hooks/useAuth';
+import useAppStore from './stores/appStore';
 
 export default function App() {
-  const [registrationOpen, setRegistrationOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('network');
-  const [members, setMembers] = useState(initialMembers);
-  const [selectedMyMember, setSelectedMyMember] = useState(initialMembers[0]);
-  const [selectedNetworkMember, setSelectedNetworkMember] = useState(networkMembers[0]);
-  const [compareList, setCompareList] = useState([]);
-  const [proposalTarget, setProposalTarget] = useState(null);
-  const [scoreRuleWeights, setScoreRuleWeights] = useState(defaultScoreRuleWeights);
-  const [badgeThresholds, setBadgeThresholds] = useState(defaultBadgeThresholds);
+  const { user, isAuthenticated, isDemoMode, signIn, signOut } = useAuth();
+  const {
+    activeTab, setActiveTab,
+    members, selectedMyMember, setSelectedMyMember, addMember,
+    selectedNetworkMember, setSelectedNetworkMember,
+    compareList, setCompareList,
+    registrationOpen, setRegistrationOpen,
+    proposalTarget, setProposalTarget,
+    scoreRuleWeights, setScoreRuleWeights,
+    badgeThresholds, setBadgeThresholds,
+  } = useAppStore();
+
+  if (!isAuthenticated) {
+    return <LoginPage onLogin={signIn} isDemoMode={isDemoMode} />;
+  }
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <Header />
+        <Header onSignOut={signOut} />
 
         <main className="min-h-0 flex-1 overflow-hidden">
           {activeTab === 'dashboard' && (
@@ -75,7 +82,7 @@ export default function App() {
           scoreRuleWeights={scoreRuleWeights}
           badgeThresholds={badgeThresholds}
           onSave={(newMember) => {
-            setMembers((prev) => [newMember, ...prev]);
+            addMember(newMember);
             setSelectedMyMember(newMember);
           }}
         />
