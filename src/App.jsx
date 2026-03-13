@@ -19,7 +19,7 @@ export default function App() {
   const { user, isAuthenticated, isDemoMode, signIn, signOut } = useAuth();
   const {
     activeTab, setActiveTab,
-    members, selectedMyMember, setSelectedMyMember, addMember,
+    selectedMyMember, setSelectedMyMember, addMember,
     selectedNetworkMember, setSelectedNetworkMember,
     compareList, setCompareList,
     registrationOpen, setRegistrationOpen,
@@ -51,9 +51,6 @@ export default function App() {
           )}
           {activeTab === 'myMembers' && (
             <MyMembersPage
-              members={members}
-              selectedMyMember={selectedMyMember}
-              setSelectedMyMember={setSelectedMyMember}
               onOpenRegistration={() => setRegistrationOpen(true)}
             />
           )}

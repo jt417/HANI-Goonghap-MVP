@@ -3,8 +3,9 @@ import { Filter, FileSearch, MessageSquare, Send } from 'lucide-react';
 import Badge from '../components/common/Badge';
 import GradeBadge from '../components/common/GradeBadge';
 import NetworkResultCard from '../components/member/NetworkResultCard';
-import { networkMembers, proposalMessages } from '../lib/seedData';
+import { networkMembers } from '../lib/seedData';
 import { compareColumns } from '../lib/constants';
+import { useMessages } from '../hooks/useMessages';
 
 function ComparisonTable({ compareList }) {
   if (!compareList.length) {
@@ -29,6 +30,8 @@ function ComparisonTable({ compareList }) {
 export default function NetworkPage({ selectedMyMember, compareList, setCompareList, selectedNetworkMember, setSelectedNetworkMember, openProposal }) {
   const [minScore, setMinScore] = useState(80);
   const [verifyFilter, setVerifyFilter] = useState('전체');
+  const [msgInput, setMsgInput] = useState('');
+  const { messages, sendMessage } = useMessages(selectedNetworkMember?.id);
 
   const filtered = useMemo(() => {
     return networkMembers.filter((m) => {
@@ -48,6 +51,12 @@ export default function NetworkPage({ selectedMyMember, compareList, setCompareL
   };
 
   const current = filtered.find((item) => item.id === selectedNetworkMember?.id) || filtered[0] || null;
+
+  const handleSendMessage = async () => {
+    if (!msgInput.trim()) return;
+    await sendMessage(msgInput.trim());
+    setMsgInput('');
+  };
 
   return (
     <div className="grid h-full grid-cols-[280px_1fr_360px]">
@@ -128,14 +137,23 @@ export default function NetworkPage({ selectedMyMember, compareList, setCompareL
             <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800"><MessageSquare size={16} /> 업체 메시지 스레드</div>
               <div className="space-y-3">
-                {proposalMessages.map((msg) => (
+                {messages.map((msg) => (
                   <div key={msg.id} className={`rounded-2xl p-3 text-sm ${msg.role === 'me' ? 'ml-8 bg-violet-50 text-violet-900' : 'mr-8 border border-slate-200 bg-white text-slate-700'}`}>
                     <div className="flex items-center justify-between text-xs font-bold"><span>{msg.sender}</span><span className="text-slate-400">{msg.time}</span></div>
                     <p className="mt-2 leading-6">{msg.text}</p>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 flex gap-2"><input className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none" placeholder="후보 관련 메시지 보내기" /><button className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"><Send size={16} /></button></div>
+              <div className="mt-4 flex gap-2">
+                <input
+                  className="flex-1 rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none"
+                  placeholder="후보 관련 메시지 보내기"
+                  value={msgInput}
+                  onChange={(e) => setMsgInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                />
+                <button onClick={handleSendMessage} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"><Send size={16} /></button>
+              </div>
             </div>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50">비교 후보 지정</button>

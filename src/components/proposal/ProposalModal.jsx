@@ -1,16 +1,36 @@
 import React, { useState } from 'react';
 import { ChevronRight, CheckCircle2, ShieldCheck, X } from 'lucide-react';
 import Badge from '../common/Badge';
+import { useProposals } from '../../hooks/useProposals';
 
 export default function ProposalModal({ member, selectedMyMember, onClose }) {
+  const { createProposal } = useProposals();
   const [visibility, setVisibility] = useState(['학력', '궁합 요약', '소득 구간']);
   const [memo, setMemo] = useState('');
+  const [sending, setSending] = useState(false);
 
   const toggleVisibility = (item) => {
     setVisibility((prev) => (prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item]));
   };
 
   const options = ['학력', '소득 구간', '사진 일부', '궁합 요약', '가치관 요약'];
+
+  const handleSend = async () => {
+    setSending(true);
+    await createProposal({
+      memberId: selectedMyMember.id,
+      candidate: member.id,
+      agency: member.agency,
+      score: member.matchScore,
+      visibility,
+      memo,
+      status: '검토중',
+      lastAction: '방금',
+      owner: '이팀장',
+    });
+    setSending(false);
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
@@ -117,7 +137,9 @@ export default function ProposalModal({ member, selectedMyMember, onClose }) {
 
             <div className="mt-6 flex flex-col gap-3">
               <button onClick={onClose} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100">취소</button>
-              <button onClick={onClose} className="rounded-xl bg-violet-600 px-4 py-3 text-sm font-bold text-white hover:bg-violet-700">제안서 발송하기</button>
+              <button onClick={handleSend} disabled={sending} className="rounded-xl bg-violet-600 px-4 py-3 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-50">
+                {sending ? '발송 중...' : '제안서 발송하기'}
+              </button>
             </div>
           </aside>
         </div>

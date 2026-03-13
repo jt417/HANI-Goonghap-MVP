@@ -1,11 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Star, ShieldCheck } from 'lucide-react';
 import Badge from '../components/common/Badge';
 import GradeBadge from '../components/common/GradeBadge';
 import GradeScoreCard from '../components/grade/GradeScoreCard';
+import { useMembers } from '../hooks/useMembers';
+import useAppStore from '../stores/appStore';
 
-export default function MyMembersPage({ members, selectedMyMember, setSelectedMyMember, onOpenRegistration }) {
+export default function MyMembersPage({ onOpenRegistration }) {
+  const { items, loading, fetchMembers } = useMembers();
+  const { members: storeMembers, selectedMyMember, setSelectedMyMember } = useAppStore();
   const [activeGradeTab, setActiveGradeTab] = useState('overall');
+
+  // Use store members (includes locally added ones) merged with DB members
+  const members = storeMembers;
+
+  useEffect(() => {
+    fetchMembers();
+  }, [fetchMembers]);
+
   const gradeTabs = [
     { key: 'overall', label: '종합' },
     { key: 'wealth', label: '자산' },
@@ -13,7 +25,9 @@ export default function MyMembersPage({ members, selectedMyMember, setSelectedMy
     { key: 'family', label: '집안' },
     { key: 'career', label: '직업' },
   ];
-  const currentGrade = selectedMyMember.grade.categories[activeGradeTab];
+  const currentGrade = selectedMyMember?.grade?.categories?.[activeGradeTab];
+
+  if (!selectedMyMember) return null;
 
   return (
     <div className="grid h-full grid-cols-[1.2fr_420px] gap-0">
@@ -30,16 +44,20 @@ export default function MyMembersPage({ members, selectedMyMember, setSelectedMy
             <div>회원</div><div>상태</div><div>직업 / 학력</div><div>최근 접촉</div><div>다음 액션</div><div>검증</div>
           </div>
           <div>
-            {members.map((m) => (
-              <button key={m.id} onClick={() => setSelectedMyMember(m)} className={`grid w-full grid-cols-[1.2fr_0.8fr_1.2fr_0.8fr_0.8fr_0.9fr] items-center border-b border-slate-100 px-5 py-4 text-left transition hover:bg-slate-50 ${selectedMyMember.id === m.id ? 'bg-violet-50/60' : 'bg-white'}`}>
-                <div><div className="font-medium text-slate-900">{m.name} <span className="text-xs text-slate-400">({m.id})</span></div><div className="mt-1 text-sm text-slate-500">{m.age}세 · {m.gender} · {m.location}</div></div>
-                <div><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">{m.status}</span></div>
-                <div><div className="text-sm text-slate-800">{m.job}</div><div className="mt-1 text-xs text-slate-500">{m.edu}</div></div>
-                <div className="text-sm text-slate-600">{m.lastContact}</div>
-                <div className="text-sm font-medium text-violet-700">{m.nextAction}</div>
-                <div><Badge level={m.verifyLevel} /></div>
-              </button>
-            ))}
+            {loading ? (
+              <div className="py-8 text-center text-sm text-slate-400">불러오는 중...</div>
+            ) : (
+              members.map((m) => (
+                <button key={m.id} onClick={() => setSelectedMyMember(m)} className={`grid w-full grid-cols-[1.2fr_0.8fr_1.2fr_0.8fr_0.8fr_0.9fr] items-center border-b border-slate-100 px-5 py-4 text-left transition hover:bg-slate-50 ${selectedMyMember.id === m.id ? 'bg-violet-50/60' : 'bg-white'}`}>
+                  <div><div className="font-medium text-slate-900">{m.name} <span className="text-xs text-slate-400">({m.id})</span></div><div className="mt-1 text-sm text-slate-500">{m.age}세 · {m.gender} · {m.location}</div></div>
+                  <div><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">{m.status}</span></div>
+                  <div><div className="text-sm text-slate-800">{m.job}</div><div className="mt-1 text-xs text-slate-500">{m.edu}</div></div>
+                  <div className="text-sm text-slate-600">{m.lastContact}</div>
+                  <div className="text-sm font-medium text-violet-700">{m.nextAction}</div>
+                  <div><Badge level={m.verifyLevel} /></div>
+                </button>
+              ))
+            )}
           </div>
         </div>
       </div>
@@ -65,14 +83,16 @@ export default function MyMembersPage({ members, selectedMyMember, setSelectedMy
           <div className="mt-4 grid grid-cols-2 gap-3">
             {gradeTabs.map((tab) => (<GradeScoreCard key={tab.key} title={tab.label} data={selectedMyMember.grade.categories[tab.key]} active={activeGradeTab === tab.key} onClick={() => setActiveGradeTab(tab.key)} />))}
           </div>
-          <div className="mt-4 rounded-2xl border border-violet-200 bg-violet-50 p-4">
-            <div className="flex items-center justify-between"><div><div className="text-sm font-bold text-violet-900">{gradeTabs.find((t) => t.key === activeGradeTab)?.label} 상세</div><div className="mt-1 text-xs text-violet-700">현재 회원은 {currentGrade.percentile} 포지션입니다.</div></div><GradeBadge label={currentGrade.badge} /></div>
-            <div className="mt-4 grid grid-cols-3 gap-3 text-center">
-              <div className="rounded-xl bg-white/80 p-3"><div className="text-xs text-slate-400">카테고리 점수</div><div className="mt-1 text-xl font-bold text-slate-900">{currentGrade.score}</div></div>
-              <div className="rounded-xl bg-white/80 p-3"><div className="text-xs text-slate-400">퍼센타일</div><div className="mt-1 text-xl font-bold text-violet-700">{currentGrade.percentile}</div></div>
-              <div className="rounded-xl bg-white/80 p-3"><div className="text-xs text-slate-400">뱃지</div><div className="mt-1 text-sm font-bold text-slate-900">{currentGrade.badge || '없음'}</div></div>
+          {currentGrade && (
+            <div className="mt-4 rounded-2xl border border-violet-200 bg-violet-50 p-4">
+              <div className="flex items-center justify-between"><div><div className="text-sm font-bold text-violet-900">{gradeTabs.find((t) => t.key === activeGradeTab)?.label} 상세</div><div className="mt-1 text-xs text-violet-700">현재 회원은 {currentGrade.percentile} 포지션입니다.</div></div><GradeBadge label={currentGrade.badge} /></div>
+              <div className="mt-4 grid grid-cols-3 gap-3 text-center">
+                <div className="rounded-xl bg-white/80 p-3"><div className="text-xs text-slate-400">카테고리 점수</div><div className="mt-1 text-xl font-bold text-slate-900">{currentGrade.score}</div></div>
+                <div className="rounded-xl bg-white/80 p-3"><div className="text-xs text-slate-400">퍼센타일</div><div className="mt-1 text-xl font-bold text-violet-700">{currentGrade.percentile}</div></div>
+                <div className="rounded-xl bg-white/80 p-3"><div className="text-xs text-slate-400">뱃지</div><div className="mt-1 text-sm font-bold text-slate-900">{currentGrade.badge || '없음'}</div></div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
         <div className="mt-5 rounded-2xl border border-violet-200 bg-violet-50 p-4">
           <div className="flex items-center gap-2 text-sm font-bold text-violet-800"><Star size={16} /> 사주 성향 요약</div>
