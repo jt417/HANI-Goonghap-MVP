@@ -22,7 +22,7 @@ export function useSettlements() {
     const { error } = await supabase.from('settlements').update({ status: newStatus }).eq('id', id);
     if (!error) await fetchSettlements();
     return { error };
-  }, []);
+  }, [fetchSettlements]);
 
   return { items, loading, fetchSettlements, updateStatus };
 }

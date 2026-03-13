@@ -8,6 +8,17 @@ export default function ProposalModal({ member, selectedMyMember, onClose }) {
   const [visibility, setVisibility] = useState(['학력', '궁합 요약', '소득 구간']);
   const [memo, setMemo] = useState('');
   const [sending, setSending] = useState(false);
+  const checklistLabels = [
+    '회원 1차 소개 의사 확인 완료',
+    '민감 개인정보 비공개 설정 확인',
+    '종교 / 자녀 계획 등 주요 이슈 사전 브리핑 예정',
+    '수락 시 2차 공개 범위 별도 승인 필요',
+  ];
+  const [checklist, setChecklist] = useState(checklistLabels.reduce((acc, label) => ({ ...acc, [label]: true }), {}));
+
+  const toggleChecklist = (label) => {
+    setChecklist((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
 
   const toggleVisibility = (item) => {
     setVisibility((prev) => (prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item]));
@@ -113,15 +124,10 @@ export default function ProposalModal({ member, selectedMyMember, onClose }) {
           <aside className="border-l border-slate-200 bg-slate-50 p-6">
             <div className="text-sm font-bold text-slate-800">발송 전 체크리스트</div>
             <div className="mt-4 space-y-3 text-sm text-slate-700">
-              {[
-                '회원 1차 소개 의사 확인 완료',
-                '민감 개인정보 비공개 설정 확인',
-                '종교 / 자녀 계획 등 주요 이슈 사전 브리핑 예정',
-                '수락 시 2차 공개 범위 별도 승인 필요',
-              ].map((item) => (
-                <label key={item} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
-                  <input type="checkbox" className="mt-1" defaultChecked />
-                  <span>{item}</span>
+              {checklistLabels.map((label) => (
+                <label key={label} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 cursor-pointer">
+                  <input type="checkbox" className="mt-1" checked={checklist[label]} onChange={() => toggleChecklist(label)} />
+                  <span>{label}</span>
                 </label>
               ))}
             </div>

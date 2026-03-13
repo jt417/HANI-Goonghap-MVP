@@ -22,7 +22,16 @@ export default function MyMembersPage({ onOpenRegistration }) {
   ];
   const currentGrade = selectedMyMember?.grade?.categories?.[activeGradeTab];
 
-  if (!selectedMyMember) return null;
+  if (!selectedMyMember) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center">
+          <p className="text-lg font-medium text-slate-500">등록된 회원이 없습니다.</p>
+          <button onClick={onOpenRegistration} className="mt-4 rounded-xl bg-slate-900 px-6 py-3 text-sm font-medium text-white hover:bg-slate-800">+ 신규 회원 등록</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid h-full grid-cols-[1.2fr_420px] gap-0">

@@ -1,38 +1,12 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import useAppStore from '../stores/appStore';
 
 export function useAuth() {
   const { user, profile, setUser, setProfile } = useAppStore();
+  const initialized = useRef(false);
 
-  useEffect(() => {
-    if (!isSupabaseConfigured()) {
-      // Demo mode: set a fake user
-      setUser({ id: 'demo', email: 'demo@hani.kr' });
-      setProfile({ full_name: '이팀장', role: 'manager', agency_name: '압구정 노블레스 파트너스' });
-      return;
-    }
-
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setProfile(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const fetchProfile = async (userId) => {
+  const fetchProfile = useCallback(async (userId) => {
     if (!isSupabaseConfigured()) return;
     const { data } = await supabase
       .from('users')
@@ -45,7 +19,34 @@ export function useAuth() {
         agency_name: data.agencies?.display_name || data.agencies?.name,
       });
     }
-  };
+  }, [setProfile]);
+
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+
+    if (!isSupabaseConfigured()) {
+      setUser({ id: 'demo', email: 'demo@hani.kr' });
+      setProfile({ full_name: '이팀장', role: 'manager', agency_name: '압구정 노블레스 파트너스' });
+      return;
+    }
+
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      if (session?.user) fetchProfile(session.user.id);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
+        setProfile(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [setUser, setProfile, fetchProfile]);
 
   const signIn = useCallback(async (email, password) => {
     if (!isSupabaseConfigured()) {
@@ -55,7 +56,7 @@ export function useAuth() {
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
-  }, []);
+  }, [setUser, setProfile]);
 
   const signUp = useCallback(async (email, password, fullName) => {
     if (!isSupabaseConfigured()) {
@@ -76,7 +77,7 @@ export function useAuth() {
       return;
     }
     await supabase.auth.signOut();
-  }, []);
+  }, [setUser, setProfile]);
 
   return {
     user,

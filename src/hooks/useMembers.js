@@ -15,6 +15,7 @@ export function useMembers() {
   const fetchMembers = useCallback(async () => {
     if (!isSupabaseConfigured()) return; // demo mode uses seedData
     setLoading(true);
+    setError(null);
     const { data, error: err } = await supabase
       .from('members')
       .select('*')
@@ -24,10 +25,11 @@ export function useMembers() {
     } else {
       const mapped = data.map(mapDbToLocal);
       setMembers(mapped);
-      if (mapped.length > 0 && !selectedMyMember) setSelectedMyMember(mapped[0]);
+      const store = useAppStore.getState();
+      if (mapped.length > 0 && !store.selectedMyMember) setSelectedMyMember(mapped[0]);
     }
     setLoading(false);
-  }, []);
+  }, [setMembers, setSelectedMyMember]);
 
   const createMember = useCallback(async (formData) => {
     const labels = { overall: '종합', wealth: '자산', appearance: '외모', family: '집안', career: '직업' };
@@ -85,7 +87,7 @@ export function useMembers() {
     addMember(mapped);
     setSelectedMyMember(mapped);
     return { data: mapped, error: null };
-  }, [scoreRuleWeights, badgeThresholds]);
+  }, [scoreRuleWeights, badgeThresholds, addMember, setSelectedMyMember]);
 
   const updateMember = useCallback(async (id, updates) => {
     if (!isSupabaseConfigured()) {

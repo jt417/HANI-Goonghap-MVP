@@ -22,7 +22,7 @@ export function useVerifications() {
     const { error } = await supabase.from('verifications').update({ status: newStatus }).eq('id', id);
     if (!error) await fetchVerifications();
     return { error };
-  }, []);
+  }, [fetchVerifications]);
 
   const createVerification = useCallback(async (verification) => {
     if (!isSupabaseConfigured()) {

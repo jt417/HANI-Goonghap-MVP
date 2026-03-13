@@ -110,16 +110,20 @@ function MemberRegistrationPanel({ onOpenModal, scoreRuleWeights }) {
 }
 
 function ScoreSettingsPanel({ scoreRuleWeights, setScoreRuleWeights, badgeThresholds, setBadgeThresholds }) {
+  const totalWeight = scoreRuleWeights.reduce((sum, r) => sum + r.weight, 0);
   return (
     <SectionCard title="관리자용 점수 기준 설정" subtitle="가중치와 배지 임계값을 조정해 내부 평가 기준을 관리합니다." action={<div className="flex items-center gap-2 text-sm font-medium text-slate-600"><Settings2 size={16} /> Admin</div>}>
       <div className="grid grid-cols-[1fr_340px] gap-4">
         <div className="rounded-2xl border border-slate-200 p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800"><SlidersHorizontal size={16} /> 가중치 설정</div>
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-bold text-slate-800"><SlidersHorizontal size={16} /> 가중치 설정</div>
+            <div className={`text-sm font-bold ${totalWeight === 100 ? 'text-emerald-600' : 'text-rose-600'}`}>합계: {totalWeight}%</div>
+          </div>
           <div className="space-y-3">
             {scoreRuleWeights.map((rule) => (
               <div key={rule.key} className="rounded-xl border border-slate-200 p-3">
                 <div className="flex items-center justify-between"><div><div className="text-sm font-medium text-slate-900">{rule.label}</div><div className="mt-1 text-xs text-slate-500">{rule.desc}</div></div><div className="text-sm font-bold text-violet-700">{rule.weight}%</div></div>
-                <input type="range" min="0" max="50" value={rule.weight} onChange={(e) => setScoreRuleWeights((prev) => prev.map((item) => item.key === rule.key ? { ...item, weight: Number(e.target.value) } : item))} className="mt-3 w-full" />
+                <input type="range" min="0" max="50" value={rule.weight} onChange={(e) => setScoreRuleWeights((prev) => prev.map((item) => item.key === rule.key ? { ...item, weight: Math.min(50, Math.max(0, Number(e.target.value))) } : item))} className="mt-3 w-full" />
               </div>
             ))}
           </div>
@@ -130,7 +134,7 @@ function ScoreSettingsPanel({ scoreRuleWeights, setScoreRuleWeights, badgeThresh
             <div className="space-y-3">
               {badgeThresholds.map((badge) => (
                 <div key={badge.label} className="rounded-xl border border-slate-200 p-3">
-                  <div className="flex items-center justify-between"><GradeBadge label={badge.label} /><input type="number" value={badge.min} onChange={(e) => setBadgeThresholds((prev) => prev.map((item) => item.label === badge.label ? { ...item, min: Number(e.target.value) } : item))} className="w-20 rounded-lg border border-slate-300 px-2 py-1 text-sm" /></div>
+                  <div className="flex items-center justify-between"><GradeBadge label={badge.label} /><input type="number" min="0" max="100" value={badge.min} onChange={(e) => { const v = Math.min(100, Math.max(0, Number(e.target.value))); setBadgeThresholds((prev) => prev.map((item) => item.label === badge.label ? { ...item, min: v } : item)); }} className="w-20 rounded-lg border border-slate-300 px-2 py-1 text-sm" /></div>
                   <div className="mt-2 text-xs text-slate-500">이 점수 이상일 때 자동 부여</div>
                 </div>
               ))}

@@ -16,13 +16,13 @@ export function useDisputes() {
 
   const updateLevel = useCallback(async (id, newLevel) => {
     if (!isSupabaseConfigured()) {
-      setItems((prev) => prev.map((item) => (item.id === id ? { ...item, level: newLevel } : item)));
+      setItems((prev) => prev.map((item) => (item.id === id ? { ...item, level: newLevel, updated: '방금' } : item)));
       return { error: null };
     }
     const { error } = await supabase.from('disputes').update({ level: newLevel }).eq('id', id);
     if (!error) await fetchDisputes();
     return { error };
-  }, []);
+  }, [fetchDisputes]);
 
   const createDispute = useCallback(async (dispute) => {
     if (!isSupabaseConfigured()) {
