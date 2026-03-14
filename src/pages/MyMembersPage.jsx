@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import useAppStore from '../stores/appStore';
 import { useMembers } from '../hooks/useMembers';
@@ -18,8 +18,8 @@ function sortMembers(list, sortBy) {
     case 'lastContact':
       return sorted.sort((a, b) => (b.lastContactDate || '').localeCompare(a.lastContactDate || ''));
     case 'status': {
-      const order = { '소개 진행중': 0, '소개 가능': 1, '신규 상담': 2, '보류': 3, '휴면': 4 };
-      return sorted.sort((a, b) => (order[a.status] ?? 5) - (order[b.status] ?? 5));
+      const order = { '소개 진행중': 0, '매칭중': 1, '소개 가능': 2, '신규 상담': 3, '보류': 4, '성혼': 5, '휴면': 6, '탈퇴': 7 };
+      return sorted.sort((a, b) => (order[a.status] ?? 8) - (order[b.status] ?? 8));
     }
     default:
       return sorted.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
@@ -28,7 +28,7 @@ function sortMembers(list, sortBy) {
 
 export default function MyMembersPage({ onOpenRegistration }) {
   const { members, loading, fetchMembers, selectedMyMember, setSelectedMyMember, updateMember, deleteMember, searchMembers } = useMembers();
-  const { inbox, outbox } = useProposals();
+  const { inbox, outbox, updateProposalStatus } = useProposals();
   const profile = useAppStore((s) => s.profile);
   const showToast = useAppStore((s) => s.showToast);
   const { myReminders, getReminderForMember } = useReminders();
@@ -41,6 +41,20 @@ export default function MyMembersPage({ onOpenRegistration }) {
   useEffect(() => {
     fetchMembers();
   }, [fetchMembers]);
+
+  // C-4: 계약 만료 자동 휴면 전환 (run once on mount)
+  const hasCheckedExpiration = useRef(false);
+  useEffect(() => {
+    if (hasCheckedExpiration.current || members.length === 0) return;
+    hasCheckedExpiration.current = true;
+    const today = new Date().toISOString().split('T')[0];
+    members.forEach((m) => {
+      if (m.contractEndDate && m.contractEndDate < today && !['휴면', '탈퇴', '성혼'].includes(m.status)) {
+        updateMember(m.id, { status: '휴면' });
+        showToast(`${m.name} 계약 만료 → 휴면 전환`, 'slate');
+      }
+    });
+  }, [members.length]);
 
   const myCount = useMemo(() => members.filter((m) => m.manager === profile?.full_name).length, [members, profile]);
 
@@ -62,7 +76,7 @@ export default function MyMembersPage({ onOpenRegistration }) {
   );
 
   return (
-    <div className={`grid h-full ${selectedMyMember ? 'grid-cols-1 lg:grid-cols-[1fr_560px]' : 'grid-cols-1'} gap-0`}>
+    <div className={`grid h-full grid-rows-1 overflow-hidden ${selectedMyMember ? 'grid-cols-1 lg:grid-cols-[1fr_560px]' : 'grid-cols-1'} gap-0`}>
       {/* LEFT: Member List */}
       <div className={`flex min-h-0 flex-col overflow-hidden ${selectedMyMember ? 'hidden lg:flex' : 'flex'}`}>
         <div className="shrink-0 space-y-4 p-4 pb-0 md:p-6 md:pb-0">
@@ -118,7 +132,7 @@ export default function MyMembersPage({ onOpenRegistration }) {
 
       {/* RIGHT: Detail Panel — full-screen overlay on mobile, side panel on lg+ */}
       {selectedMyMember && (
-        <div className="fixed inset-0 z-30 flex flex-col bg-white lg:relative lg:inset-auto lg:z-auto">
+        <div className="fixed inset-0 z-30 flex min-h-0 flex-col bg-white lg:relative lg:inset-auto lg:z-auto">
           <button
             onClick={() => setSelectedMyMember(null)}
             className="flex items-center gap-2 border-b border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 lg:hidden"
@@ -134,6 +148,15 @@ export default function MyMembersPage({ onOpenRegistration }) {
               onUpdate={updateMember}
               onDelete={(id) => {
                 deleteMember(id);
+              }}
+              onCleanupRelated={(memberId) => {
+                // 진행중인 제안 자동 철회
+                const activeStatuses = ['검토중', '열람함', '응답대기', '회원 확인중', '추가정보 요청'];
+                [...inbox, ...outbox].forEach((p) => {
+                  if (p.memberId === memberId && activeStatuses.includes(p.status)) {
+                    updateProposalStatus(p.id, '철회');
+                  }
+                });
               }}
               showToast={showToast}
             />

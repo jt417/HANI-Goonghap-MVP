@@ -14,7 +14,7 @@ export default function Toast() {
   };
 
   return (
-    <div className={`fixed top-6 right-8 z-50 flex items-center gap-3 max-w-md rounded-2xl border px-5 py-3.5 shadow-lg ${toneClasses[toastMessage.tone] || toneClasses.slate}`}>
+    <div className={`fixed top-6 right-8 z-[70] flex items-center gap-3 max-w-md rounded-2xl border px-5 py-3.5 shadow-lg ${toneClasses[toastMessage.tone] || toneClasses.slate}`}>
       <div className="flex-1 text-sm font-medium">{toastMessage.text}</div>
       {toastMessage.onUndo && (
         <button

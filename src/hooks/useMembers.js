@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import useAppStore from '../stores/appStore';
 import { scoreMember } from '../lib/scoring';
+import { logActivity, LOG_ACTIONS } from './useActivityLog';
 
 export function useMembers() {
   const {
@@ -79,6 +80,7 @@ export function useMembers() {
     if (!isSupabaseConfigured()) {
       addMember(newMember);
       setSelectedMyMember(newMember);
+      logActivity({ action: LOG_ACTIONS.MEMBER_CREATE, target: 'member', targetId: newMember.id, detail: `${newMember.name} (${newMember.gender === 'M' ? '남' : '여'}, ${newMember.age}세)` });
       return { data: newMember, error: null };
     }
 
@@ -114,9 +116,11 @@ export function useMembers() {
   const deleteMember = useCallback(async (id) => {
     if (!isSupabaseConfigured()) {
       const store = useAppStore.getState();
+      const member = store.members.find((m) => m.id === id);
       const filtered = store.members.filter((m) => m.id !== id);
       setMembers(filtered);
       if (store.selectedMyMember?.id === id) setSelectedMyMember(filtered.length > 0 ? filtered[0] : null);
+      logActivity({ action: LOG_ACTIONS.MEMBER_DELETE, target: 'member', targetId: id, detail: member?.name });
       return { error: null };
     }
 
@@ -129,10 +133,10 @@ export function useMembers() {
     if (!query) return members;
     const q = query.toLowerCase();
     return members.filter((m) =>
-      m.name.toLowerCase().includes(q) ||
-      m.id.toLowerCase().includes(q) ||
-      m.job.toLowerCase().includes(q) ||
-      m.location.toLowerCase().includes(q)
+      (m.name || '').toLowerCase().includes(q) ||
+      (m.id || '').toLowerCase().includes(q) ||
+      (m.job || '').toLowerCase().includes(q) ||
+      (m.location || '').toLowerCase().includes(q)
     );
   }, [members]);
 
@@ -202,8 +206,8 @@ function mapLocalToDb(member) {
   if (member.grade) result.grade = member.grade;
   if (member.values) result.values = member.values;
   if (member.status) result.status = member.status;
-  if (member.profileCompletion) result.profile_completion = member.profileCompletion;
-  if (member.outboundProposals) result.outbound_proposals = member.outboundProposals;
+  if (member.profileCompletion !== undefined) result.profile_completion = member.profileCompletion;
+  if (member.outboundProposals !== undefined) result.outbound_proposals = member.outboundProposals;
   if (member.nextAction) result.next_action = member.nextAction;
   return result;
 }

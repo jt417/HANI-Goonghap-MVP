@@ -12,13 +12,20 @@ export default function ProposalModal({ member, selectedMyMember, onClose }) {
   const [visibility, setVisibility] = useState(['학력', '궁합 요약', '소득 구간']);
   const [memo, setMemo] = useState('');
   const [sending, setSending] = useState(false);
+  const [memberConsented, setMemberConsented] = useState(false);
+  const outbox = useAppStore((s) => s.outbox);
   const checklistLabels = [
-    '회원 1차 소개 의사 확인 완료',
     '민감 개인정보 비공개 설정 확인',
     '종교 / 자녀 계획 등 주요 이슈 사전 브리핑 예정',
     '수락 시 2차 공개 범위 별도 승인 필요',
   ];
   const [checklist, setChecklist] = useState(checklistLabels.reduce((acc, label) => ({ ...acc, [label]: true }), {}));
+
+  /* ── 중복 제안 방지 (Phase 1-7) ── */
+  const duplicateProposal = outbox.find(
+    (p) => p.memberId === selectedMyMember?.id && p.candidate === member.id
+      && !['반려', '철회', '만료'].includes(p.status),
+  );
 
   /* ── 형평성 gap ── */
   const myScore = Math.round(selectedMyMember?.grade?.overallScore || 0);
@@ -34,8 +41,11 @@ export default function ProposalModal({ member, selectedMyMember, onClose }) {
 
   const options = ['학력', '소득 구간', '사진 일부', '궁합 요약', '가치관 요약'];
 
+  const allChecked = Object.values(checklist).every(Boolean);
+  const canSend = memberConsented && allChecked && !duplicateProposal;
+
   const handleSend = async () => {
-    if (!selectedMyMember) return;
+    if (!selectedMyMember || !canSend) return;
     setSending(true);
     await createProposal({
       memberId: selectedMyMember.id,
@@ -47,6 +57,8 @@ export default function ProposalModal({ member, selectedMyMember, onClose }) {
       status: '검토중',
       lastAction: '방금',
       owner: profile?.full_name || '이팀장',
+      senderConsent: '동의',
+      sentDate: new Date().toISOString(),
       ...(gapInfo && {
         scoreGap: gapInfo.gap,
         gapTier: gapInfo.tier,
@@ -70,7 +82,7 @@ export default function ProposalModal({ member, selectedMyMember, onClose }) {
           </button>
         </div>
 
-        <div className="grid grid-cols-[1fr_320px] gap-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-0 max-h-[90vh] overflow-y-auto lg:overflow-visible">
           <div className="space-y-6 p-6">
             <div className="rounded-2xl border border-violet-200 bg-violet-50 p-4">
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
@@ -208,8 +220,44 @@ export default function ProposalModal({ member, selectedMyMember, onClose }) {
           </div>
 
           <aside className="border-l border-slate-200 bg-slate-50 p-6">
-            <div className="text-sm font-bold text-slate-800">발송 전 체크리스트</div>
-            <div className="mt-4 space-y-3 text-sm text-slate-700">
+            {/* ── 중복 제안 경고 ── */}
+            {duplicateProposal && (
+              <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                <div className="font-bold">중복 제안 감지</div>
+                <p className="mt-1 text-xs leading-4">
+                  이미 {selectedMyMember?.id} → {member.id} 진행 중인 제안({duplicateProposal.id}, {duplicateProposal.status})이 있습니다.
+                  기존 제안이 철회/반려된 후 재발송하세요.
+                </p>
+              </div>
+            )}
+
+            {/* ── 회원 사전동의 (Phase 1-1) ── */}
+            <div className="text-sm font-bold text-slate-800">우리 회원 사전동의</div>
+            <div className="mt-3">
+              {memberConsented ? (
+                <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                  <CheckCircle2 size={18} className="text-emerald-600" />
+                  <div>
+                    <div className="font-bold">회원 동의 확인됨</div>
+                    <div className="text-xs text-emerald-600">{selectedMyMember?.name}님의 소개 의사를 확인했습니다.</div>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setMemberConsented(true)}
+                  className="w-full rounded-xl border-2 border-dashed border-violet-300 bg-violet-50 p-3 text-sm text-violet-800 hover:border-violet-400 hover:bg-violet-100 transition"
+                >
+                  <div className="font-bold">회원 동의 확인하기</div>
+                  <div className="mt-0.5 text-xs text-violet-600">
+                    {selectedMyMember?.name}님에게 후보 익명 프로필을 보여주고 소개 의사를 확인했습니까?
+                  </div>
+                </button>
+              )}
+            </div>
+
+            {/* ── 체크리스트 ── */}
+            <div className="mt-5 text-sm font-bold text-slate-800">발송 전 체크리스트</div>
+            <div className="mt-3 space-y-2.5 text-sm text-slate-700">
               {checklistLabels.map((label) => (
                 <label key={label} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 cursor-pointer">
                   <input type="checkbox" className="mt-1" checked={checklist[label]} onChange={() => toggleChecklist(label)} />
@@ -229,8 +277,12 @@ export default function ProposalModal({ member, selectedMyMember, onClose }) {
 
             <div className="mt-6 flex flex-col gap-3">
               <button onClick={onClose} className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100">취소</button>
-              <button onClick={handleSend} disabled={sending} className="rounded-xl bg-violet-600 px-4 py-3 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-50">
-                {sending ? '발송 중...' : '제안서 발송하기'}
+              <button
+                onClick={handleSend}
+                disabled={sending || !canSend}
+                className="rounded-xl bg-violet-600 px-4 py-3 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {sending ? '발송 중...' : duplicateProposal ? '중복 제안 — 발송 불가' : !memberConsented ? '회원 동의 필요' : '제안서 발송하기'}
               </button>
             </div>
           </aside>

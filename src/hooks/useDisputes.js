@@ -35,7 +35,17 @@ export function useDisputes() {
     return { data, error };
   }, []);
 
-  return { items, loading, fetchDisputes, updateLevel, createDispute };
+  const updateDispute = useCallback(async (id, updates) => {
+    if (!isSupabaseConfigured()) {
+      setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+      return { error: null };
+    }
+    const { error } = await supabase.from('disputes').update(updates).eq('id', id);
+    if (!error) await fetchDisputes();
+    return { error };
+  }, [fetchDisputes]);
+
+  return { items, loading, fetchDisputes, updateLevel, updateDispute, createDispute };
 }
 
 function mapDbToLocal(row) {

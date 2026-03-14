@@ -205,6 +205,377 @@ export function getBranchRelations(b1, b2) {
 }
 
 // ============================================================
+// 납음오행 (Nayin Five Elements) — 六十甲子 납음표
+// ============================================================
+
+const _N = (element, name, hanja) => ({ element, name, hanja });
+export const NAYIN_TABLE = {
+  '甲子': _N('금','해중금','海中金'), '乙丑': _N('금','해중금','海中金'),
+  '丙寅': _N('화','노중화','爐中火'), '丁卯': _N('화','노중화','爐中火'),
+  '戊辰': _N('목','대림목','大林木'), '己巳': _N('목','대림목','大林木'),
+  '庚午': _N('토','노방토','路旁土'), '辛未': _N('토','노방토','路旁土'),
+  '壬申': _N('금','검봉금','劍鋒金'), '癸酉': _N('금','검봉금','劍鋒金'),
+  '甲戌': _N('화','산두화','山頭火'), '乙亥': _N('화','산두화','山頭火'),
+  '丙子': _N('수','간하수','澗下水'), '丁丑': _N('수','간하수','澗下水'),
+  '戊寅': _N('토','성두토','城頭土'), '己卯': _N('토','성두토','城頭土'),
+  '庚辰': _N('금','백랍금','白蠟金'), '辛巳': _N('금','백랍금','白蠟金'),
+  '壬午': _N('목','양류목','楊柳木'), '癸未': _N('목','양류목','楊柳木'),
+  '甲申': _N('수','천중수','泉中水'), '乙酉': _N('수','천중수','泉中水'),
+  '丙戌': _N('토','옥상토','屋上土'), '丁亥': _N('토','옥상토','屋上土'),
+  '戊子': _N('화','벽력화','霹靂火'), '己丑': _N('화','벽력화','霹靂火'),
+  '庚寅': _N('목','송백목','松柏木'), '辛卯': _N('목','송백목','松柏木'),
+  '壬辰': _N('수','장류수','長流水'), '癸巳': _N('수','장류수','長流水'),
+  '甲午': _N('금','사중금','砂中金'), '乙未': _N('금','사중금','砂中金'),
+  '丙申': _N('화','산하화','山下火'), '丁酉': _N('화','산하화','山下火'),
+  '戊戌': _N('목','평지목','平地木'), '己亥': _N('목','평지목','平地木'),
+  '庚子': _N('토','벽상토','壁上土'), '辛丑': _N('토','벽상토','壁上土'),
+  '壬寅': _N('금','금박금','金箔金'), '癸卯': _N('금','금박금','金箔金'),
+  '甲辰': _N('화','복등화','覆燈火'), '乙巳': _N('화','복등화','覆燈火'),
+  '丙午': _N('수','천하수','天河水'), '丁未': _N('수','천하수','天河水'),
+  '戊申': _N('토','대역토','大驛土'), '己酉': _N('토','대역토','大驛土'),
+  '庚戌': _N('금','차천금','釵釧金'), '辛亥': _N('금','차천금','釵釧金'),
+  '壬子': _N('목','상자목','桑柘木'), '癸丑': _N('목','상자목','桑柘木'),
+  '甲寅': _N('수','대계수','大溪水'), '乙卯': _N('수','대계수','大溪水'),
+  '丙辰': _N('토','사중토','沙中土'), '丁巳': _N('토','사중토','沙中土'),
+  '戊午': _N('화','천상화','天上火'), '己未': _N('화','천상화','天上火'),
+  '庚申': _N('목','석류목','石榴木'), '辛酉': _N('목','석류목','石榴木'),
+  '壬戌': _N('수','대해수','大海水'), '癸亥': _N('수','대해수','大海水'),
+};
+
+export function getNayin(stem, branch) {
+  return NAYIN_TABLE[stem + branch] || null;
+}
+
+export function calculateNayinCompat(yearA, yearB) {
+  const nA = getNayin(yearA.stem, yearA.branch);
+  const nB = getNayin(yearB.stem, yearB.branch);
+  if (!nA || !nB) return null;
+
+  const elA = nA.element;
+  const elB = nB.element;
+  let relation, score, detail;
+
+  if (GENERATES[elA] === elB) {
+    relation = '상생'; score = 92;
+    detail = `${nA.name}(${ELEMENT_HANJA[elA]})이 ${nB.name}(${ELEMENT_HANJA[elB]})을 생함 — 자연스러운 인연의 흐름`;
+  } else if (GENERATES[elB] === elA) {
+    relation = '상생'; score = 88;
+    detail = `${nB.name}(${ELEMENT_HANJA[elB]})이 ${nA.name}(${ELEMENT_HANJA[elA]})을 생함 — 상대가 나를 도와주는 인연`;
+  } else if (elA === elB) {
+    relation = '비화'; score = 75;
+    detail = `${nA.name}·${nB.name} 동일 ${ELEMENT_HANJA[elA]}행 — 서로 이해는 깊으나 변화가 적음`;
+  } else if (CONTROLS[elA] === elB) {
+    relation = '상극'; score = 45;
+    detail = `${nA.name}(${ELEMENT_HANJA[elA]})이 ${nB.name}(${ELEMENT_HANJA[elB]})을 극함 — 주도권 갈등 주의`;
+  } else if (CONTROLS[elB] === elA) {
+    relation = '상극'; score = 40;
+    detail = `${nB.name}(${ELEMENT_HANJA[elB]})이 ${nA.name}(${ELEMENT_HANJA[elA]})을 극함 — 상대에게 눌리는 느낌 가능`;
+  } else {
+    relation = '무관'; score = 60;
+    detail = `${nA.name}·${nB.name} 간접 관계 — 특별한 길흉 없이 중립적`;
+  }
+  return { nayinA: nA, nayinB: nB, relation, score, detail };
+}
+
+// ============================================================
+// 신살 (Spirit Stars) — 혼인 관련 핵심 신살
+// ============================================================
+
+// 삼합국 기준 그룹
+const _SAMHAP_GROUP = { '申': 0, '子': 0, '辰': 0, '寅': 1, '午': 1, '戌': 1, '巳': 2, '酉': 2, '丑': 2, '亥': 3, '卯': 3, '未': 3 };
+const _DOHA_TARGET  = ['酉', '卯', '午', '子']; // 도화살 목표 지지
+const _YEOKMA_TARGET = ['寅', '申', '亥', '巳']; // 역마살 목표 지지
+const _HWAGAE_TARGET = ['辰', '戌', '丑', '未']; // 화개살 목표 지지
+
+// 홍란살 (紅鸞煞) — 연지 기준
+const HONGRAN = { '子':'卯','丑':'寅','寅':'丑','卯':'子','辰':'亥','巳':'戌','午':'酉','未':'申','申':'未','酉':'午','戌':'巳','亥':'辰' };
+// 천희성 (天喜星) — 연지 기준
+const CHUNHEE = { '子':'酉','丑':'申','寅':'未','卯':'午','辰':'巳','巳':'辰','午':'卯','未':'寅','申':'丑','酉':'子','戌':'亥','亥':'戌' };
+
+// 양인살 (羊刃煞) — 일간(양간만)
+const YANGIN = { '甲':'卯', '丙':'午', '戊':'午', '庚':'酉', '壬':'子' };
+
+// 천을귀인 (天乙貴人) — 일간 기준
+const CHUNEUL = {
+  '甲':['丑','未'], '戊':['丑','未'], '乙':['子','申'], '己':['子','申'],
+  '丙':['亥','酉'], '丁':['亥','酉'], '庚':['寅','午'], '辛':['寅','午'],
+  '壬':['卯','巳'], '癸':['卯','巳'],
+};
+
+// 고란살 (孤鸞煞) — 특정 일주
+const GORAN_DAYS = ['甲寅','乙巳','丁巳','辛亥','壬子','戊申'];
+
+// 원진살 (怨嗔煞) — 상극적 관계
+export const WONJIN_MAP = { '子':'未','丑':'午','寅':'巳','卯':'辰','辰':'卯','巳':'寅','午':'丑','未':'子','申':'亥','酉':'戌','戌':'酉','亥':'申' };
+
+export function calculateShinsal(pillars, dayMaster) {
+  if (!pillars) return [];
+  const results = [];
+  const dayBranch = pillars.day.branch;
+  const yearBranch = pillars.year.branch;
+  const allBranches = [pillars.year.branch, pillars.month.branch, pillars.day.branch, pillars.hour.branch];
+  const group = _SAMHAP_GROUP[dayBranch];
+
+  // 도화살 (桃花煞) — 일지 삼합국 기준
+  if (group !== undefined) {
+    const target = _DOHA_TARGET[group];
+    allBranches.forEach((b, i) => {
+      if (b === target && i !== 2) { // 일지 자체는 제외
+        const pos = ['년지','월지','일지','시지'][i];
+        results.push({ name: '도화살', hanja: '桃花煞', positive: true, branch: b, position: pos,
+          desc: '타고난 매력과 이성 인연이 강한 별. 연애 감각이 뛰어나고 사교적',
+          marriage: '이성에게 인기가 많아 좋은 인연을 만나기 쉬우나, 결혼 후 외도 주의 필요' });
+      }
+    });
+  }
+
+  // 역마살 (驛馬煞)
+  if (group !== undefined) {
+    const target = _YEOKMA_TARGET[group];
+    allBranches.forEach((b, i) => {
+      if (b === target) {
+        const pos = ['년지','월지','일지','시지'][i];
+        results.push({ name: '역마살', hanja: '驛馬煞', positive: null, branch: b, position: pos,
+          desc: '활동적이고 변화를 좋아하는 별. 여행·이직·이사가 잦음',
+          marriage: '결혼 후에도 활동 반경이 넓음. 자유를 존중하는 배우자와 궁합이 좋음' });
+      }
+    });
+  }
+
+  // 화개살 (華蓋煞)
+  if (group !== undefined) {
+    const target = _HWAGAE_TARGET[group];
+    allBranches.forEach((b, i) => {
+      if (b === target) {
+        const pos = ['년지','월지','일지','시지'][i];
+        results.push({ name: '화개살', hanja: '華蓋煞', positive: true, branch: b, position: pos,
+          desc: '예술적 감각과 영적 감수성이 뛰어난 별. 학문·종교에 관심',
+          marriage: '깊이 있는 대화를 좋아하며, 지적인 배우자와 잘 맞음' });
+      }
+    });
+  }
+
+  // 홍란살 (紅鸞煞) — 연지 기준
+  const hongranTarget = HONGRAN[yearBranch];
+  if (hongranTarget) {
+    allBranches.forEach((b, i) => {
+      if (b === hongranTarget) {
+        const pos = ['년지','월지','일지','시지'][i];
+        results.push({ name: '홍란살', hanja: '紅鸞煞', positive: true, branch: b, position: pos,
+          desc: '결혼 인연이 강한 길한 별. 혼인 시기가 다가오는 신호',
+          marriage: '좋은 배우자를 만날 운이 열려 있음. 적극적인 소개에 유리한 시기' });
+      }
+    });
+  }
+
+  // 천희성 (天喜星) — 연지 기준
+  const chunheeTarget = CHUNHEE[yearBranch];
+  if (chunheeTarget) {
+    allBranches.forEach((b, i) => {
+      if (b === chunheeTarget) {
+        const pos = ['년지','월지','일지','시지'][i];
+        results.push({ name: '천희성', hanja: '天喜星', positive: true, branch: b, position: pos,
+          desc: '경사(慶事)가 있는 별. 결혼·출산 등 기쁜 일이 생김',
+          marriage: '결혼 운이 열려 있으며, 행복한 결혼 생활이 기대됨' });
+      }
+    });
+  }
+
+  // 양인살 (羊刃煞) — 양간만
+  const yangInTarget = YANGIN[dayMaster];
+  if (yangInTarget) {
+    allBranches.forEach((b, i) => {
+      if (b === yangInTarget) {
+        const pos = ['년지','월지','일지','시지'][i];
+        results.push({ name: '양인살', hanja: '羊刃煞', positive: false, branch: b, position: pos,
+          desc: '강한 자존심과 추진력의 별. 일에서는 성공하나 대인관계에 날카로움',
+          marriage: '배우자와 주도권 다툼 가능. 양보와 타협이 관계의 핵심' });
+      }
+    });
+  }
+
+  // 천을귀인 (天乙貴人) — 일간 기준
+  const chuneulTargets = CHUNEUL[dayMaster] || [];
+  chuneulTargets.forEach((target) => {
+    allBranches.forEach((b, i) => {
+      if (b === target) {
+        const pos = ['년지','월지','일지','시지'][i];
+        results.push({ name: '천을귀인', hanja: '天乙貴人', positive: true, branch: b, position: pos,
+          desc: '최고의 길성. 위기 때 귀인이 나타나 도움을 받는 별',
+          marriage: '좋은 배우자를 만나 평생 도움을 주고받는 인연. 시댁·처가 관계도 원만' });
+      }
+    });
+  });
+
+  // 고란살 (孤鸞煞) — 일주 기준
+  const dayPillar = pillars.day.stem + pillars.day.branch;
+  if (GORAN_DAYS.includes(dayPillar)) {
+    results.push({ name: '고란살', hanja: '孤鸞煞', positive: false, branch: pillars.day.branch, position: '일주',
+      desc: '혼인 지연 또는 배우자 인연이 약한 별. 만혼이 오히려 길함',
+      marriage: '서두르지 않고 충분한 교제 후 결혼하면 오히려 좋은 결과. 30대 중반 이후 결혼이 안정적' });
+  }
+
+  return results;
+}
+
+// ============================================================
+// 배우자궁 (Spouse Palace) — 일지(日支) 해석
+// ============================================================
+
+export const SPOUSE_PALACE = {
+  '子': { traits: '지적·유연', type: '감성적이고 적응력 뛰어남', ideal: '학자·예술가·교육자형', caution: '변덕스러울 수 있어 안정감 있는 상대가 보완', element: '수' },
+  '丑': { traits: '성실·보수적', type: '묵묵히 내조하는 알뜰형', ideal: '공무원·금융인·관리자형', caution: '고집이 세므로 유연한 상대가 보완', element: '토' },
+  '寅': { traits: '활동적·진취적', type: '자유롭고 리더십 있음', ideal: '사업가·운동선수·외향형', caution: '구속을 싫어해 독립적 관계 필요', element: '목' },
+  '卯': { traits: '온화·감성적', type: '예술적 감각과 배려심', ideal: '디자이너·작가·상담가형', caution: '우유부단할 수 있어 결단력 있는 상대가 보완', element: '목' },
+  '辰': { traits: '야심·능력형', type: '큰 그림을 그리는 포부형', ideal: '경영자·전문직·정치인형', caution: '권위적일 수 있어 존중 기반의 소통 중요', element: '토' },
+  '巳': { traits: '지혜·세련됨', type: '깊은 사고력과 전략적 사고', ideal: '연구자·의사·컨설턴트형', caution: '속마음을 잘 드러내지 않아 인내심 필요', element: '화' },
+  '午': { traits: '열정·사교적', type: '밝고 에너지 넘치는 스타일', ideal: '영업·방송인·마케터형', caution: '다혈질이라 감정 조절이 관계의 관건', element: '화' },
+  '未': { traits: '따뜻·가정적', type: '헌신적이고 가족 중심', ideal: '교사·요리사·사회복지형', caution: '결정장애가 있을 수 있어 리드형 상대가 보완', element: '토' },
+  '申': { traits: '영리·다재다능', type: '빠른 두뇌와 적응력', ideal: 'IT전문가·기획자·변호사형', caution: '변화를 좋아해 안정추구형과 마찰 가능', element: '금' },
+  '酉': { traits: '세련·완벽주의', type: '미적 감각과 꼼꼼함', ideal: '예술가·패션·금융전문가형', caution: '비판적일 수 있어 포용력 있는 상대 필요', element: '금' },
+  '戌': { traits: '충직·의리형', type: '한번 사귀면 평생 함께', ideal: '군인·경찰·공무원·사업가형', caution: '보수적이라 새로운 시도에 대한 유연성 필요', element: '토' },
+  '亥': { traits: '관대·낭만적', type: '정이 많고 베풀기 좋아함', ideal: '작가·의사·봉사직·사업가형', caution: '현실감각이 부족할 수 있어 실용적 상대가 보완', element: '수' },
+};
+
+export function analyzeSpousePalace(dayBranchA, dayBranchB) {
+  const spA = SPOUSE_PALACE[dayBranchA];
+  const spB = SPOUSE_PALACE[dayBranchB];
+  if (!spA || !spB) return null;
+
+  // 배우자궁 오행 호환성
+  const elA = spA.element;
+  const elB = spB.element;
+  let compatScore = 60;
+  let compatDetail = '';
+
+  if (GENERATES[elA] === elB || GENERATES[elB] === elA) {
+    compatScore = 88;
+    compatDetail = '서로의 배우자궁이 상생 관계 — 자연스럽게 상대가 원하는 배우자상에 가까움';
+  } else if (elA === elB) {
+    compatScore = 72;
+    compatDetail = '동일한 배우자궁 오행 — 비슷한 이상형을 가져 서로를 이해하기 쉬움';
+  } else if (CONTROLS[elA] === elB || CONTROLS[elB] === elA) {
+    compatScore = 48;
+    compatDetail = '배우자궁이 상극 관계 — 서로의 이상형과 다를 수 있어 기대치 조율 필요';
+  } else {
+    compatDetail = '배우자궁 간접 관계 — 특별한 길흉 없이 노력에 따라 결정';
+  }
+
+  return { palaceA: spA, palaceB: spB, score: compatScore, detail: compatDetail };
+}
+
+// ============================================================
+// 십이운성 (12 Life Stages) — 일간 기준 각 지지의 운성
+// ============================================================
+
+const TWELVE_STAGES = ['장생','목욕','관대','건록','제왕','쇠','병','사','묘','절','태','양'];
+const TWELVE_STAGES_HANJA = ['長生','沐浴','冠帶','建祿','帝旺','衰','病','死','墓','絶','胎','養'];
+
+// 양간 장생 위치 (지지 인덱스)
+const YANG_START = { '甲': 11, '丙': 2, '戊': 2, '庚': 5, '壬': 8 }; // 亥=11, 寅=2, 巳=5, 申=8
+// 음간 장생 위치 (역순)
+const YIN_START = { '乙': 6, '丁': 9, '己': 9, '辛': 0, '癸': 3 }; // 午=6, 酉=9, 子=0, 卯=3
+
+export function getLifeStage(dayMaster, branch) {
+  const branchIdx = BRANCHES.indexOf(branch);
+  if (branchIdx < 0) return null;
+
+  const isYang = STEM_POLARITY[dayMaster] === 0;
+  const startIdx = isYang ? YANG_START[dayMaster] : YIN_START[dayMaster];
+  if (startIdx === undefined) return null;
+
+  let stageIdx;
+  if (isYang) {
+    stageIdx = (branchIdx - startIdx + 12) % 12;
+  } else {
+    stageIdx = (startIdx - branchIdx + 12) % 12;
+  }
+
+  return { stage: TWELVE_STAGES[stageIdx], hanja: TWELVE_STAGES_HANJA[stageIdx], index: stageIdx };
+}
+
+export function getMarriageLifeStages(pillars, dayMaster) {
+  if (!pillars) return null;
+  return {
+    year: getLifeStage(dayMaster, pillars.year.branch),
+    month: getLifeStage(dayMaster, pillars.month.branch),
+    day: getLifeStage(dayMaster, pillars.day.branch),
+    hour: getLifeStage(dayMaster, pillars.hour.branch),
+  };
+}
+
+// 십이운성 혼인 해석
+const STAGE_MARRIAGE_NOTE = {
+  '장생': '성장과 시작의 에너지. 결혼을 통해 새로운 삶이 열리는 운',
+  '목욕': '연애·로맨스 에너지가 강함. 이성 인연이 활발하나 감정 기복 주의',
+  '관대': '사회적 성취와 결혼 시기가 겹치는 최적기. 좋은 배우자를 만날 운',
+  '건록': '안정과 실력의 시기. 신뢰를 기반으로 한 건실한 결혼 가능',
+  '제왕': '최고 전성기. 배우자 선택지가 많으나 주도권 의식이 강해 양보 필요',
+  '쇠': '안정기에 접어듦. 차분하고 현실적인 결혼이 유리',
+  '병': '건강·감정 관리 필요. 결혼보다는 자기 돌봄이 우선',
+  '사': '전환기. 과거 패턴을 내려놓고 새로운 관계 방식을 배우는 시기',
+  '묘': '내면의 성숙기. 깊이 있는 인연을 만나지만 느리게 진행됨',
+  '절': '리셋의 시기. 이전 연애 패턴과 다른 새로운 인연이 찾아옴',
+  '태': '새 인연이 잉태되는 시기. 예상치 못한 만남이 인연이 될 수 있음',
+  '양': '인연이 천천히 무르익는 시기. 서두르지 않으면 좋은 결과',
+};
+
+// ============================================================
+// 원진살 (怨嗔煞) — 관계 충돌 경고
+// ============================================================
+
+export function hasWonjin(b1, b2) {
+  return WONJIN_MAP[b1] === b2 || WONJIN_MAP[b2] === b1;
+}
+
+// ============================================================
+// LLM 프롬프트 데이터 빌더
+// ============================================================
+
+export function buildLLMPromptData(compatResult, memberA, memberB) {
+  if (!compatResult) return null;
+  const { totalScore, categories, rawAnalysis, stemHap, tenGodRelation, score20 } = compatResult;
+  const sa = memberA?.saju;
+  const sb = memberB?.saju;
+  if (!sa || !sb) return null;
+
+  return {
+    summary: {
+      totalScore,
+      grade: totalScore >= 85 ? '최상' : totalScore >= 75 ? '상' : totalScore >= 65 ? '중상' : totalScore >= 50 ? '중' : '하',
+      천간합: stemHap?.hap ? stemHap.label : '없음',
+    },
+    memberA: {
+      name: memberA.name,
+      dayMaster: `${sa.dayMaster}(${ELEMENT_HANJA[STEM_ELEMENT[sa.dayMaster]]})`,
+      strength: sa.strengthLabel || sa.strength,
+      structure: sa.structure,
+      yongshin: sa.yongshin?.map((e) => ELEMENT_HANJA[e]).join(','),
+      nayin: rawAnalysis.nayin?.nayinA ? `${rawAnalysis.nayin.nayinA.name}(${rawAnalysis.nayin.nayinA.hanja})` : '',
+      shinsal: rawAnalysis.shinsal?.memberA?.map((s) => s.name).join(',') || '',
+      spousePalace: rawAnalysis.spousePalace?.palaceA?.traits || '',
+    },
+    memberB: {
+      name: memberB.name || memberB.id,
+      dayMaster: `${sb.dayMaster}(${ELEMENT_HANJA[STEM_ELEMENT[sb.dayMaster]]})`,
+      strength: sb.strengthLabel || sb.strength,
+      structure: sb.structure,
+      yongshin: sb.yongshin?.map((e) => ELEMENT_HANJA[e]).join(','),
+      nayin: rawAnalysis.nayin?.nayinB ? `${rawAnalysis.nayin.nayinB.name}(${rawAnalysis.nayin.nayinB.hanja})` : '',
+      shinsal: rawAnalysis.shinsal?.memberB?.map((s) => s.name).join(',') || '',
+      spousePalace: rawAnalysis.spousePalace?.palaceB?.traits || '',
+    },
+    categories: Object.fromEntries(
+      Object.entries(categories).map(([k, v]) => [k, { score: v.score, score20: score20[k], details: v.details }])
+    ),
+    tenGodRelation,
+    branchConflicts: rawAnalysis.branches?.relations?.filter((r) => !r.positive).map((r) => `${r.type}: ${r.detail}`) || [],
+    nayin: rawAnalysis.nayin?.detail || '',
+    wonjin: rawAnalysis.wonjin || null,
+  };
+}
+
+// ============================================================
 // HANI 사주 궁합 — 6차원 실전 궁합 분석
 // ============================================================
 
@@ -402,6 +773,35 @@ export function calculateCompatibility(memberA, memberB) {
   const branchScore = Math.max(0, Math.min(100, branchScoreRaw));
   rawAnalysis.branches = { score: branchScore, relations: branchRelationsAll };
 
+  // ── 신규 분석 모듈 ──
+  const nayinResult = calculateNayinCompat(sa.pillars.year, sb.pillars.year);
+  rawAnalysis.nayin = nayinResult;
+
+  const shinsalA = calculateShinsal(sa.pillars, dmA);
+  const shinsalB = calculateShinsal(sb.pillars, dmB);
+  rawAnalysis.shinsal = { memberA: shinsalA, memberB: shinsalB };
+
+  const dayBranchA = sa.pillars.day.branch;
+  const dayBranchB = sb.pillars.day.branch;
+  const spousePalace = analyzeSpousePalace(dayBranchA, dayBranchB);
+  rawAnalysis.spousePalace = spousePalace;
+
+  const wonjinDay = hasWonjin(dayBranchA, dayBranchB);
+  const wonjinYear = hasWonjin(sa.pillars.year.branch, sb.pillars.year.branch);
+  rawAnalysis.wonjin = { day: wonjinDay, year: wonjinYear, any: wonjinDay || wonjinYear };
+
+  const lifeStagesA = getMarriageLifeStages(sa.pillars, dmA);
+  const lifeStagesB = getMarriageLifeStages(sb.pillars, dmB);
+  rawAnalysis.lifeStages = { memberA: lifeStagesA, memberB: lifeStagesB };
+
+  // 일지 십이운성 (혼인 관련)
+  const dayStageA = lifeStagesA?.day;
+  const dayStageB = lifeStagesB?.day;
+  rawAnalysis.dayLifeStage = {
+    memberA: dayStageA ? { ...dayStageA, marriageNote: STAGE_MARRIAGE_NOTE[dayStageA.stage] } : null,
+    memberB: dayStageB ? { ...dayStageB, marriageNote: STAGE_MARRIAGE_NOTE[dayStageB.stage] } : null,
+  };
+
   // ── 십신 관계 (A↔B) ──
   const tgAB = getTenGod(dmA, sb.pillars.day.stem);
   const tgBA = getTenGod(dmB, sa.pillars.day.stem);
@@ -410,14 +810,22 @@ export function calculateCompatibility(memberA, memberB) {
   // 6차원 실전 궁합 카테고리 산출
   // ══════════════════════════════════════════════════════
 
-  const dayBrA = sa.pillars.day.branch;
-  const dayBrB = sb.pillars.day.branch;
+  const dayBrA = dayBranchA;
+  const dayBrB = dayBranchB;
 
-  // ── 1. 성격 궁합 (25%) ──
-  const cat_personality = dayMasterScore;
+  // ── 1. 천생인연 (20%) — 일간 + 납음 + 십신 ──
+  let cat_personality = dayMasterScore;
   const personalityDetails = [dayMasterDetail];
   if (stemHap.hap) personalityDetails.push('일간 천간합으로 서로의 본성이 자연스럽게 합치됩니다');
   if (dmElA === dmElB) personalityDetails.push('같은 오행이라 이해도는 높으나 비슷한 성격의 충돌에 주의');
+
+  // 납음오행 반영
+  if (nayinResult) {
+    const nayinBonus = Math.round((nayinResult.score - 60) * 0.3); // -6 ~ +10
+    cat_personality = Math.max(0, Math.min(100, cat_personality + nayinBonus));
+    personalityDetails.push(`납음(年柱): ${nayinResult.detail}`);
+  }
+
   // 십신 관계로 성격 역학 설명
   const personalityTenGod = `${memberA.name}→상대: ${tgAB} / 상대→${memberA.name}: ${tgBA}`;
   personalityDetails.push(personalityTenGod);
@@ -459,6 +867,32 @@ export function calculateCompatibility(memberA, memberB) {
     cat_romance += 12;
     romanceDetails.push(`상대에게 ${memberA.name}은 ${tgBA} 관계 — 전통적 배우자 궁합`);
   }
+  // 배우자궁 반영
+  if (spousePalace) {
+    const spBonus = Math.round((spousePalace.score - 60) * 0.35); // -4 ~ +10
+    cat_romance += spBonus;
+    romanceDetails.push(`배우자궁: ${spousePalace.detail}`);
+  }
+  // 신살 반영 (도화살=매력, 홍란살=혼인운, 고란살=혼인지연)
+  const allShinsal = [...shinsalA, ...shinsalB];
+  const dohaCount = allShinsal.filter((s) => s.name === '도화살').length;
+  const hongranCount = allShinsal.filter((s) => s.name === '홍란살').length;
+  const goranCount = allShinsal.filter((s) => s.name === '고란살').length;
+  if (dohaCount >= 2) {
+    cat_romance += 8;
+    romanceDetails.push('양측 모두 도화살(桃花煞) 보유 — 서로에 대한 매력과 끌림이 강한 조합');
+  } else if (dohaCount === 1) {
+    cat_romance += 4;
+    romanceDetails.push('한쪽에 도화살 — 이성적 매력이 관계를 이끄는 힘이 됨');
+  }
+  if (hongranCount > 0) {
+    cat_romance += 5;
+    romanceDetails.push('홍란살(紅鸞煞) 발동 — 혼인 인연이 열려있는 좋은 시기');
+  }
+  if (goranCount > 0) {
+    cat_romance -= 6;
+    romanceDetails.push('고란살(孤鸞煞) 존재 — 만혼이 오히려 길할 수 있으니 서두르지 않는 것이 좋음');
+  }
   // 일지 충 = 로맨틱 충돌
   if (matchPair(BRANCH_CHUNG, dayBrA, dayBrB)) {
     cat_romance -= 18;
@@ -483,6 +917,12 @@ export function calculateCompatibility(memberA, memberB) {
   if (GENERATES[dmElA] === dmElB || GENERATES[dmElB] === dmElA) {
     cat_communication = Math.min(100, cat_communication + 5);
     commDetails.push('상생 에너지가 소통을 부드럽게 만들어줍니다');
+  }
+  // 화개살 양측 = 깊은 대화 궁합
+  const hwagaeBoth = shinsalA.some((s) => s.name === '화개살') && shinsalB.some((s) => s.name === '화개살');
+  if (hwagaeBoth) {
+    cat_communication = Math.min(100, cat_communication + 8);
+    commDetails.push('양측 화개살 보유 — 깊이 있는 대화와 정신적 교감에 강한 조합');
   }
 
   // ── 4. 생활·가치관 (15%) ──
@@ -546,23 +986,44 @@ export function calculateCompatibility(memberA, memberB) {
   let cat_conflict = Math.max(0, Math.min(100, 100 - negativeTotal * 1.5));
   const conflictDetails = [];
 
+  // 원진살 반영
+  if (wonjinDay) {
+    cat_conflict = Math.max(0, cat_conflict - 18);
+    conflictDetails.push('일지 원진살(怨嗔煞) — 처음엔 좋으나 시간이 지나면 작은 불만이 쌓이는 관계. 소통 노력 필수');
+  }
+  if (wonjinYear && !wonjinDay) {
+    cat_conflict = Math.max(0, cat_conflict - 8);
+    conflictDetails.push('연지 원진살 — 양가 부모님 관계에서 미묘한 긴장이 있을 수 있음');
+  }
   // 일지 충은 가장 위험 — 추가 감점
   if (matchPair(BRANCH_CHUNG, dayBrA, dayBrB)) {
     cat_conflict = Math.max(0, cat_conflict - 15);
-    conflictDetails.push(`일지(日支) ${dayBrA}${dayBrB}충 — 가장 핵심적인 갈등 요소, 성격 충돌이 잦을 수 있음`);
+    conflictDetails.push(`일지 ${dayBrA}${dayBrB}충 — 가장 핵심적인 갈등 요소, 성격 충돌이 잦을 수 있음`);
   }
   // 월주 충 = 사회적 갈등
   if (matchPair(BRANCH_CHUNG, sa.pillars.month.branch, sb.pillars.month.branch)) {
-    conflictDetails.push(`월주(月柱) 충 — 사회적 가치관·직업관 충돌 가능`);
+    conflictDetails.push(`월주 충 — 사회적 가치관·직업관 충돌 가능`);
+  }
+  // 양인살 양측 = 충돌 위험 상승
+  const yangInBoth = shinsalA.some((s) => s.name === '양인살') && shinsalB.some((s) => s.name === '양인살');
+  if (yangInBoth) {
+    cat_conflict = Math.max(0, cat_conflict - 10);
+    conflictDetails.push('양측 모두 양인살 — 자존심이 강해 갈등 시 격해질 수 있음. 양보 훈련 필요');
   }
   for (const r of negativeRels) {
     if (r.type === '형') conflictDetails.push(`${r.detail} — 스트레스 상황에서 예기치 않은 갈등 발생 가능`);
     if (r.type === '파') conflictDetails.push(`${r.detail} — 작은 오해가 쌓일 수 있으니 평소 소통 중요`);
     if (r.type === '해') conflictDetails.push(`${r.detail} — 감정적 상처를 주고받을 수 있어 주의`);
   }
-  if (negativeRels.length === 0) {
+  // 천을귀인 보유 = 갈등 완화
+  const chuneulBoth = shinsalA.some((s) => s.name === '천을귀인') && shinsalB.some((s) => s.name === '천을귀인');
+  if (chuneulBoth) {
+    cat_conflict = Math.min(100, cat_conflict + 8);
+    conflictDetails.push('양측 천을귀인 보유 — 위기 상황에서 서로가 귀인이 되어 관계를 지켜줌');
+  }
+  if (negativeRels.length === 0 && !wonjinDay) {
     cat_conflict = Math.min(100, cat_conflict + 5);
-    conflictDetails.push('충·형·파·해 없음 — 갈등 요소가 매우 적어 안정적인 관계 기대');
+    conflictDetails.push('충돌 요소 없음 — 갈등 요소가 매우 적어 안정적인 관계 기대');
   }
 
   // ══════════════════════════════════════════════
@@ -615,6 +1076,12 @@ export function calculateCompatibility(memberA, memberB) {
   if (cat_personality >= 85) managerAdvice.push('성격 궁합이 최상입니다 — 첫 만남에서 호감도가 높을 것입니다.');
   if (cat_romance >= 85) managerAdvice.push('로맨틱 케미가 강합니다 — 분위기 있는 장소(와인바, 레스토랑)를 추천하세요.');
   if (cat_conflict < 50) managerAdvice.push('갈등 위험이 높습니다 — 만남 후 반드시 양측 피드백을 확인하세요.');
+
+  // 신살 기반 추가 조언
+  if (hongranCount > 0) managerAdvice.push('혼인 운이 열려있는 시기입니다 — 적극적으로 소개를 진행하세요.');
+  if (goranCount > 0) managerAdvice.push('만혼 성향이 있으니 천천히 교제할 수 있도록 안내하세요.');
+  if (wonjinDay) managerAdvice.push('일지 원진 관계 — 만남 초기에는 좋으나 장기적으로 소통 훈련이 필요합니다.');
+  if (dohaCount >= 2) managerAdvice.push('양측 모두 이성에게 인기가 많은 타입 — 교제 초기 집중도를 높여주세요.');
 
   return {
     totalScore,

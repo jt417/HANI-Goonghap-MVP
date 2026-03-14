@@ -1,27 +1,25 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Bell, LogOut, X, Clock, Menu } from 'lucide-react';
+import { Search, Bell, LogOut, X, Clock, Menu, Check } from 'lucide-react';
 import useAppStore from '../../stores/appStore';
 import { useReminders } from '../../hooks/useReminders';
 import { useMembers } from '../../hooks/useMembers';
 import { useProposals } from '../../hooks/useProposals';
 
-const staticNotifications = [
-  { text: '노블레스 에스가 OUT-311을 열람했습니다.', time: '5분 전', isReminder: false, tab: 'outbox' },
-  { text: 'VER-51 자산 인증 검토 마감 임박', time: '1시간 전', isReminder: false, tab: 'verify' },
-  { text: 'DSP-14 우회 접촉 의심 건 업데이트', time: '오늘 09:30', isReminder: false, tab: 'dispute' },
-];
-
 export default function Header({ onSignOut, onMenuToggle }) {
   const profile = useAppStore((s) => s.profile);
+  const userRole = useAppStore((s) => s.userRole);
   const setActiveTab = useAppStore((s) => s.setActiveTab);
+  const notifications = useAppStore((s) => s.notifications);
+  const markNotifRead = useAppStore((s) => s.markNotifRead);
+  const markAllNotifsRead = useAppStore((s) => s.markAllNotifsRead);
   const { myReminders } = useReminders();
   const { searchMembers, setSelectedMyMember } = useMembers();
   const { inbox } = useProposals();
   const actionableInbox = inbox.filter((p) => p.status === '검토중' || p.status === '추가정보 요청');
+  const isIndividual = userRole === 'individual';
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [notifOpen, setNotifOpen] = useState(false);
-  const [notifRead, setNotifRead] = useState(false);
   const searchRef = useRef(null);
   const notifRef = useRef(null);
 
@@ -49,16 +47,51 @@ export default function Header({ onSignOut, onMenuToggle }) {
     return () => document.removeEventListener('mousedown', handler);
   }, [searchOpen, notifOpen]);
 
+  // Merge reminder notifications with app notifications
   const reminderNotifs = myReminders.map(({ member, reminder }) => ({
-    text: `${member.name}(${member.id}) 소개 시기입니다 (${reminder.cycleLabel} 주기)`,
-    time: `${reminder.daysOverdue}일 초과`,
-    isReminder: true,
+    id: `reminder-${member.id}`,
+    title: `${member.name}(${member.id}) 소개 시기입니다`,
+    body: `${reminder.cycleLabel} 주기 · ${reminder.daysOverdue}일 초과`,
+    type: 'reminder',
+    read: false,
     urgency: reminder.urgency,
+    tab: 'myMembers',
     onNavigate: () => { setSelectedMyMember(member); setActiveTab('myMembers'); },
   }));
 
-  const allNotifications = [...reminderNotifs, ...staticNotifications];
-  const unreadCount = reminderNotifs.length;
+  const allNotifications = [...reminderNotifs, ...notifications.slice(0, 20)];
+  const unreadCount = reminderNotifs.length + notifications.filter((n) => !n.read).length;
+
+  const handleNotifClick = (notif) => {
+    if (notif.onNavigate) notif.onNavigate();
+    else if (notif.tab) setActiveTab(notif.tab);
+    if (!notif.id.startsWith('reminder-')) markNotifRead(notif.id);
+    setNotifOpen(false);
+  };
+
+  const notifTypeStyle = (notif) => {
+    if (notif.type === 'reminder') return notif.urgency === 'high' ? 'border border-rose-200 bg-rose-50 hover:bg-rose-100' : 'border border-amber-200 bg-amber-50 hover:bg-amber-100';
+    if (notif.type === 'remind_sent') return 'border border-indigo-200 bg-indigo-50 hover:bg-indigo-100';
+    if (notif.type === 'success') return 'border border-emerald-200 bg-emerald-50 hover:bg-emerald-100';
+    return `bg-slate-50 hover:bg-slate-100 ${notif.read ? 'opacity-60' : ''}`;
+  };
+
+  const notifTitleStyle = (notif) => {
+    if (notif.type === 'reminder') return notif.urgency === 'high' ? 'font-medium text-rose-800' : 'font-medium text-amber-800';
+    if (notif.type === 'remind_sent') return 'font-medium text-indigo-800';
+    return 'text-slate-800';
+  };
+
+  const relativeTime = (iso) => {
+    if (!iso) return '';
+    const diff = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return '방금';
+    if (mins < 60) return `${mins}분 전`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs}시간 전`;
+    return `${Math.floor(hrs / 24)}일 전`;
+  };
 
   return (
     <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 md:h-16 md:px-8">
@@ -68,10 +101,16 @@ export default function Header({ onSignOut, onMenuToggle }) {
         </button>
         <div className="min-w-0">
           <div className="hidden text-sm font-medium text-slate-600 sm:block">
-            현재 로그인: {profile?.full_name || '사용자'} ({profile?.role === 'admin' ? '관리자' : '매칭매니저'})
+            현재 로그인: {profile?.full_name || '사용자'} ({profile?.role === 'admin' ? '관리자' : profile?.role === 'individual' ? '개인회원' : '매칭매니저'})
           </div>
           <div className="text-xs text-slate-400 truncate">
-            <span className="hidden sm:inline">{profile?.agency_name || ''} · </span>제안 {actionableInbox.length}건 · 리마인더 {unreadCount}건
+            {profile?.role === 'individual' ? (
+              '프로필 공개 중'
+            ) : (
+              <>
+                <span className="hidden sm:inline">{profile?.agency_name || ''} · </span>제안 {actionableInbox.length}건 · 알림 {unreadCount}건
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -116,13 +155,15 @@ export default function Header({ onSignOut, onMenuToggle }) {
             )}
           </div>
         )}
-        <button onClick={() => setSearchOpen(!searchOpen)} className="rounded-lg p-2 hover:bg-slate-100 hover:text-slate-800"><Search size={18} /></button>
+        {!isIndividual && (
+          <button onClick={() => setSearchOpen(!searchOpen)} className="rounded-lg p-2 hover:bg-slate-100 hover:text-slate-800"><Search size={18} /></button>
+        )}
         <div ref={notifRef} className="relative">
-          <button onClick={() => { setNotifOpen(!notifOpen); setNotifRead(true); }} className="relative rounded-lg p-2 hover:bg-slate-100 hover:text-slate-800">
+          <button onClick={() => setNotifOpen(!notifOpen)} className="relative rounded-lg p-2 hover:bg-slate-100 hover:text-slate-800">
             <Bell size={18} />
-            {(!notifRead || unreadCount > 0) && (
+            {unreadCount > 0 && (
               <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white">
-                {unreadCount || ''}
+                {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </button>
@@ -130,31 +171,51 @@ export default function Header({ onSignOut, onMenuToggle }) {
             <div className="absolute right-0 top-11 z-50 w-[calc(100vw-2rem)] max-w-96 rounded-2xl border border-slate-200 bg-white p-4 shadow-lg sm:w-96">
               <div className="mb-3 flex items-center justify-between">
                 <div className="text-sm font-bold text-slate-800">알림</div>
-                {unreadCount > 0 && (
-                  <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">리마인더 {unreadCount}건</span>
-                )}
+                <div className="flex items-center gap-2">
+                  {unreadCount > 0 && (
+                    <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">{unreadCount}건</span>
+                  )}
+                  {notifications.some((n) => !n.read) && (
+                    <button onClick={markAllNotifsRead} className="rounded-lg p-1 hover:bg-slate-100" title="모두 읽음">
+                      <Check size={14} className="text-slate-400" />
+                    </button>
+                  )}
+                </div>
               </div>
               <div className="max-h-80 space-y-2 overflow-y-auto">
-                {allNotifications.map((n, i) => (
-                  <button
-                    key={i}
-                    onClick={() => {
-                      if (n.onNavigate) n.onNavigate();
-                      else if (n.tab) setActiveTab(n.tab);
-                      setNotifOpen(false);
-                    }}
-                    className={`w-full rounded-xl p-3 text-left transition-colors ${n.isReminder ? (n.urgency === 'high' ? 'border border-rose-200 bg-rose-50 hover:bg-rose-100' : 'border border-amber-200 bg-amber-50 hover:bg-amber-100') : 'bg-slate-50 hover:bg-slate-100'}`}
-                  >
-                    <div className="flex items-start gap-2">
-                      {n.isReminder && <Clock size={14} className={n.urgency === 'high' ? 'mt-0.5 text-rose-500' : 'mt-0.5 text-amber-500'} />}
-                      <div className="flex-1">
-                        <div className={`text-sm ${n.isReminder ? (n.urgency === 'high' ? 'font-medium text-rose-800' : 'font-medium text-amber-800') : 'text-slate-800'}`}>{n.text}</div>
-                        <div className="mt-1 text-xs text-slate-400">{n.time}</div>
+                {allNotifications.length === 0 ? (
+                  <div className="py-6 text-center text-sm text-slate-400">알림이 없습니다</div>
+                ) : (
+                  allNotifications.map((n) => (
+                    <button
+                      key={n.id}
+                      onClick={() => handleNotifClick(n)}
+                      className={`w-full rounded-xl p-3 text-left transition-colors ${notifTypeStyle(n)}`}
+                    >
+                      <div className="flex items-start gap-2">
+                        {n.type === 'reminder' && <Clock size={14} className={`mt-0.5 ${n.urgency === 'high' ? 'text-rose-500' : 'text-amber-500'}`} />}
+                        <div className="flex-1 min-w-0">
+                          <div className={`text-sm ${notifTitleStyle(n)}`}>{n.title}</div>
+                          {n.body && <div className="mt-0.5 text-xs text-slate-500 truncate">{n.body}</div>}
+                          <div className="mt-1 text-[10px] text-slate-400">{n.createdAt ? relativeTime(n.createdAt) : n.body?.match(/\d+일 초과/) ? n.body : ''}</div>
+                        </div>
+                        {!n.read && !n.id.startsWith('reminder-') && (
+                          <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
+                        )}
                       </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  ))
+                )}
               </div>
+              {/* Browser notification permission */}
+              {typeof Notification !== 'undefined' && Notification.permission === 'default' && (
+                <button
+                  onClick={() => Notification.requestPermission()}
+                  className="mt-3 w-full rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-medium text-indigo-700 hover:bg-indigo-100"
+                >
+                  브라우저 알림 허용하기
+                </button>
+              )}
             </div>
           )}
         </div>

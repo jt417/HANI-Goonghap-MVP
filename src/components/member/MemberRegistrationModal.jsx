@@ -3,17 +3,19 @@ import { X, Camera, Plus, ChevronDown, Check } from 'lucide-react';
 import useAppStore from '../../stores/appStore';
 import GradeBadge from '../common/GradeBadge';
 import GradeScoreCard from '../grade/GradeScoreCard';
-import InfoTooltip from '../common/InfoTooltip';
+
 import { scoreMember, gradeMember, gradeOverall, normalizeIdealWeights } from '../../lib/scoring';
 import {
   bodyTypeOptions, eduOptions, locationHierarchy, locationCities,
   drinkOptions, smokeOptions, religionOptions, mbtiOptions,
-  jobCategoryOptions, appearanceStyleOptions, faceTypeOptions, hobbyOptions, fieldWeights,
+  jobCategoryOptions, appearanceStyleOptions, faceTypeOptions, hobbyCategoryOptions, fieldWeights,
   hairLossOptions,
-  maritalStatusOptions, birthOrderOptions, parentWealthOptions, parentJobOptions, parentAssetOptions,
+  maritalStatusOptions, parentWealthOptions, parentJobOptions, parentAssetOptions,
   retirementPrepOptions, siblingsOptions, familyRiskOptions,
-  idealTypeOptions, idealTypeCategories,
+  idealTypeOptions, idealTypeCategories, idealConditionCategories,
+  suggestBodyType,
 } from '../../lib/constants';
+import { useActivityLog, LOG_ACTIONS } from '../../hooks/useActivityLog';
 
 /* ── 배점 뱃지 ── */
 function WeightBadge({ fieldKey, score, gender }) {
@@ -26,7 +28,6 @@ function WeightBadge({ fieldKey, score, gender }) {
       {score !== undefined && score !== null && (
         <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-bold ${color}`}>{Math.round(score)}점</span>
       )}
-      <span className="rounded-full bg-indigo-50 px-1.5 py-0.5 text-[9px] font-bold text-indigo-600">배점 {pct}%</span>
     </span>
   );
 }
@@ -57,36 +58,6 @@ function SectionTitle({ icon, title, desc }) {
         <div className="text-sm font-bold text-slate-800">{title}</div>
         {desc && <div className="text-[11px] text-slate-500">{desc}</div>}
       </div>
-    </div>
-  );
-}
-
-/* ── 취미 칩 선택기 ── */
-function HobbyChipPicker({ selected, onChange }) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {hobbyOptions.map((h) => {
-        const active = selected.includes(h.value);
-        return (
-          <button
-            key={h.value}
-            type="button"
-            onClick={() => {
-              if (active) onChange(selected.filter((v) => v !== h.value));
-              else onChange([...selected, h.value]);
-            }}
-            className={`flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition ${
-              active
-                ? 'border-violet-300 bg-violet-50 text-violet-700'
-                : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'
-            }`}
-          >
-            <span className="text-sm">{h.emoji}</span>
-            {h.value}
-            {active && <Check size={12} className="text-violet-600" />}
-          </button>
-        );
-      })}
     </div>
   );
 }
@@ -144,7 +115,10 @@ function AppearanceStylePicker({ gender, selected, onChange }) {
 export default function MemberRegistrationModal({ open, onClose, onSave, scoreRuleWeights, badgeThresholds }) {
   const showToast = useAppStore((s) => s.showToast);
   const profile = useAppStore((s) => s.profile);
+  const { addLog } = useActivityLog();
   const [activePreviewTab, setActivePreviewTab] = useState('overall');
+  const [openCondCat, setOpenCondCat] = useState(null);
+  const [openHobbyCat, setOpenHobbyCat] = useState(null);
   const fileInputRef = useRef(null);
   const [form, setForm] = useState({
     name: '이서윤',
@@ -155,12 +129,13 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
     birthHour: '10',
     birthMinute: '30',
     birthTimeUnknown: false,
+    birthPlace: '',
     maritalStatus: '초혼',
     hasChildren: false,
-    childrenCount: 0,
+    childrenCount: 1,
     brotherCount: 0,
     sisterCount: 1,
-    birthOrder: '장녀',
+    birthOrder: 1,
     height: 167,
     weight: 52,
     bodyType: '슬림',
@@ -190,8 +165,12 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
     appearanceMemo: '자기관리 우수',
     hobbies: ['필라테스/요가', '여행', '와인/미식'],
     hobbyMemo: '',
+    customHobby: '',
+    managerBonusItems: [],
+    phone: '',
     photos: [],
     idealType: { wealth: '보통', appearance: '보통', career: '보통', age: '보통', lifestyle: '보통', family: '보통' },
+    idealConditions: { mustHave: [], preferred: [], dealBreaker: [] },
   });
 
   if (!open) return null;
@@ -201,7 +180,14 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
     if (raw === '' || raw === undefined) { setForm((prev) => ({ ...prev, [key]: '' })); return; }
     const cleaned = String(raw).replace(/[^\d]/g, '').replace(/^0+(?=\d)/, '');
     const n = parseInt(cleaned, 10);
-    setForm((prev) => ({ ...prev, [key]: isNaN(n) ? '' : n }));
+    setForm((prev) => {
+      const next = { ...prev, [key]: isNaN(n) ? '' : n };
+      if ((key === 'height' || key === 'weight') && next.height && next.weight) {
+        const suggested = suggestBodyType(next.height, next.weight, next.gender);
+        if (suggested) next.bodyType = suggested;
+      }
+      return next;
+    });
   };
 
   const handleGenderChange = (g) => {
@@ -209,7 +195,6 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
     const styleOpts = (appearanceStyleOptions[g] || []).map((o) => o.value);
     const faceOpts = (faceTypeOptions[g] || []).map((o) => o.value);
     const hairOpts = (hairLossOptions[g] || []).map((o) => o.value);
-    const birthOpts = birthOrderOptions[g] || [];
     setForm((prev) => ({
       ...prev,
       gender: g,
@@ -217,7 +202,6 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
       faceType: faceOpts.includes(prev.faceType) ? prev.faceType : '',
       appearanceStyles: prev.appearanceStyles.filter((s) => styleOpts.includes(s)),
       hairLoss: hairOpts.includes(prev.hairLoss) ? prev.hairLoss : '없음',
-      birthOrder: birthOpts.includes(prev.birthOrder) ? prev.birthOrder : '',
     }));
   };
 
@@ -293,51 +277,113 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
                 <div className="text-xs text-slate-400">이름</div>
                 <input type="text" value={form.name} onChange={(e) => set('name', e.target.value)} className="mt-2 w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-800 outline-none" />
               </label>
+              <label className="rounded-xl border border-slate-200 p-3">
+                <div className="text-xs text-slate-400">전화번호</div>
+                <input type="tel" value={form.phone} onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+                  const formatted = digits.length <= 3 ? digits : digits.length <= 7 ? `${digits.slice(0,3)}-${digits.slice(3)}` : `${digits.slice(0,3)}-${digits.slice(3,7)}-${digits.slice(7)}`;
+                  set('phone', formatted);
+                }} placeholder="010-0000-0000" className="mt-2 w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-800 outline-none" />
+              </label>
               <div className="rounded-xl border border-slate-200 p-3">
-                <div className="flex items-center text-xs text-slate-400">
-                  생년월일시
+                <div className="flex items-center text-xs text-slate-400 mb-2">
+                  생년월일
                   <GradePill grade={grades.age.grade} note={grades.age.note} />
                   <WeightBadge gender={form.gender} fieldKey="age" score={fs.age} />
                 </div>
                 <input
                   type="text"
-                  value={form.birthInput || `${form.birthYear}.${form.birthMonth}.${form.birthDay} ${form.birthTimeUnknown ? '' : `${String(form.birthHour).padStart(2,'0')}:${String(form.birthMinute).padStart(2,'0')}`}`.trim()}
+                  value={(() => {
+                    const y = form.birthYear || '';
+                    const m = form.birthMonth || '';
+                    const d = form.birthDay || '';
+                    if (!y && !m && !d) return '';
+                    return `${y}${m ? '.' + m : ''}${d ? '.' + d : ''}`;
+                  })()}
                   onChange={(e) => {
-                    const raw = e.target.value;
-                    set('birthInput', raw);
-                    const m = raw.match(/^(\d{4})\D+(\d{1,2})\D+(\d{1,2})(?:\D+(\d{1,2})\D*(\d{1,2})?)?/);
-                    if (m) {
-                      set('birthYear', m[1]);
-                      set('birthMonth', m[2]);
-                      set('birthDay', m[3]);
-                      if (m[4] !== undefined) { set('birthHour', m[4]); set('birthTimeUnknown', false); }
-                      if (m[5] !== undefined) set('birthMinute', m[5]);
-                    }
+                    const raw = e.target.value.replace(/[^\d.]/g, '');
+                    const parts = raw.split('.');
+                    setForm((prev) => ({ ...prev, birthYear: parts[0] || '', birthMonth: parts[1] || '', birthDay: parts[2] || '' }));
                   }}
-                  placeholder="1993.5.15 10:30"
-                  className="mt-2 w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-800 outline-none"
+                  placeholder="1993.5.15"
+                  className="w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-800 outline-none"
                 />
-                <div className="mt-1.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    {form.birthYear && (
-                      <>
-                        <span className="text-xs font-semibold text-slate-700">만 {2026 - Number(form.birthYear)}세</span>
-                        {form.gender === 'F' && 2026 - Number(form.birthYear) >= 34 && (
-                          <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold text-rose-600">
-                            {2026 - Number(form.birthYear) >= 35 ? '고령산모 구간' : '마지노선 진입'}
-                          </span>
-                        )}
-                        {form.gender === 'M' && 2026 - Number(form.birthYear) >= 45 && (
-                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">정자 질 저하 구간</span>
-                        )}
-                      </>
+                {form.birthYear && form.birthYear.length === 4 && (
+                  <div className="mt-1.5 flex items-center gap-2">
+                    <span className="text-xs font-semibold text-slate-700">만 {2026 - Number(form.birthYear)}세</span>
+                    {form.gender === 'F' && 2026 - Number(form.birthYear) >= 34 && (
+                      <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[9px] font-bold text-rose-600">
+                        {2026 - Number(form.birthYear) >= 35 ? '고령산모 구간' : '마지노선 진입'}
+                      </span>
+                    )}
+                    {form.gender === 'M' && 2026 - Number(form.birthYear) >= 45 && (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[9px] font-bold text-amber-600">정자 질 저하 구간</span>
                     )}
                   </div>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
+                )}
+              </div>
+              <div className="rounded-xl border border-slate-200 p-3">
+                <div className="text-xs text-slate-400 mb-2">태어난 시간</div>
+                <div className="flex items-center gap-2">
+                  {!form.birthTimeUnknown ? (
+                    <input
+                      type="text"
+                      value={(() => {
+                        const h = form.birthHour;
+                        const m = form.birthMinute;
+                        if (h === '' && m === '') return '';
+                        return `${String(h || 0).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`;
+                      })()}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/[^\d:]/g, '');
+                        const parts = raw.split(':');
+                        const h = parseInt(parts[0], 10);
+                        const m = parseInt(parts[1], 10);
+                        setForm((prev) => ({
+                          ...prev,
+                          birthHour: !isNaN(h) && h >= 0 && h <= 23 ? String(h) : parts[0] === '' ? '' : prev.birthHour,
+                          birthMinute: !isNaN(m) && m >= 0 && m <= 59 ? String(m) : (parts[1] === '' || parts[1] === undefined) ? '' : prev.birthMinute,
+                        }));
+                      }}
+                      placeholder="10:30"
+                      className="w-20 border-0 bg-transparent p-0 text-sm font-medium text-slate-800 outline-none"
+                    />
+                  ) : (
+                    <span className="text-sm text-slate-400">모름</span>
+                  )}
+                  <label className="ml-auto flex items-center gap-1.5 cursor-pointer">
                     <input type="checkbox" checked={form.birthTimeUnknown} onChange={(e) => set('birthTimeUnknown', e.target.checked)} className="rounded" />
                     <span className="text-[11px] text-slate-500">시간 모름</span>
                   </label>
                 </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-slate-200 p-3">
+                <div className="text-xs text-slate-400 mb-2">태어난 곳</div>
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={form.birthPlace?.split(' ')[0] || ''}
+                    onChange={(e) => set('birthPlace', e.target.value ? e.target.value + ' ' : '')}
+                    className="flex-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm font-medium text-slate-800 outline-none focus:border-violet-400"
+                  >
+                    <option value="">시/도 선택</option>
+                    {locationCities.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                {form.birthPlace?.split(' ')[0] && (
+                  <select
+                    value={form.birthPlace?.split(' ')[1] || ''}
+                    onChange={(e) => {
+                      const city = form.birthPlace.split(' ')[0];
+                      set('birthPlace', e.target.value ? `${city} ${e.target.value}` : `${city} `);
+                    }}
+                    className="mt-1.5 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm font-medium text-slate-800 outline-none focus:border-violet-400"
+                  >
+                    <option value="">{form.birthPlace.split(' ')[0] === '해외' ? '국가 선택' : '구/군 선택'}</option>
+                    {(locationHierarchy[form.birthPlace.split(' ')[0]] || []).map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
@@ -366,27 +412,42 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-slate-200 p-3">
-                <div className="text-xs text-slate-400">형제 구성 (n남 n녀)</div>
+                <div className="text-xs text-slate-400">형제 구성 — 본인 포함 (n남 n녀)</div>
                 <div className="mt-2 flex items-center gap-2">
                   <input type="number" min={0} max={10} value={form.brotherCount} onChange={(e) => setNum('brotherCount', e.target.value)} className="w-12 rounded-lg border border-slate-200 px-2 py-1 text-center text-sm font-medium text-slate-800 outline-none focus:border-violet-400" />
                   <span className="text-xs text-slate-500">남</span>
                   <input type="number" min={0} max={10} value={form.sisterCount} onChange={(e) => setNum('sisterCount', e.target.value)} className="w-12 rounded-lg border border-slate-200 px-2 py-1 text-center text-sm font-medium text-slate-800 outline-none focus:border-violet-400" />
                   <span className="text-xs text-slate-500">녀</span>
-                  {(form.brotherCount + form.sisterCount) > 0 && (
-                    <span className="ml-1 text-[10px] text-slate-400">총 {form.brotherCount + form.sisterCount}명</span>
-                  )}
                 </div>
               </div>
-              <label className="rounded-xl border border-slate-200 p-3">
-                <div className="text-xs text-slate-400">본인 서열</div>
-                <select value={form.birthOrder} onChange={(e) => set('birthOrder', e.target.value)} className="mt-2 w-full border-0 bg-transparent p-0 text-sm font-medium text-slate-800 outline-none">
-                  <option value="">선택</option>
-                  {(birthOrderOptions[form.gender] || birthOrderOptions.M).map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
-                {form.birthOrder && (form.brotherCount + form.sisterCount) > 0 && (
-                  <div className="mt-1 text-[10px] text-violet-600 font-medium">{form.brotherCount}남 {form.sisterCount}녀 중 {form.birthOrder}</div>
-                )}
-              </label>
+              <div className="rounded-xl border border-slate-200 p-3">
+                <div className="text-xs text-slate-400">본인 서열 (몇째)</div>
+                {(() => {
+                  const total = (form.brotherCount || 0) + (form.sisterCount || 0);
+                  const label = total === 0 ? '' : form.brotherCount > 0 && form.sisterCount > 0 ? '남매' : form.brotherCount > 0 ? '형제' : '자매';
+                  return (
+                    <>
+                      <div className="mt-2 flex items-center gap-2">
+                        {total <= 1 ? (
+                          <span className="text-sm font-medium text-slate-800">외동</span>
+                        ) : (
+                          <>
+                            <input type="number" min={1} max={total} value={form.birthOrder || ''} onChange={(e) => setNum('birthOrder', e.target.value)} className="w-14 rounded-lg border border-slate-200 px-2 py-1 text-center text-sm font-medium text-slate-800 outline-none focus:border-violet-400" />
+                            <span className="text-xs text-slate-500">째</span>
+                          </>
+                        )}
+                      </div>
+                      {total >= 2 && form.birthOrder && form.birthOrder <= total && (
+                        <div className="mt-1 text-[10px] text-violet-600 font-medium">
+                          {form.brotherCount}남 {form.sisterCount}녀 {label} 중 {form.birthOrder}째
+                          {form.birthOrder === 1 && (form.gender === 'M' ? ' (장남)' : ' (장녀)')}
+                          {form.birthOrder === total && total >= 2 && ' (막내)'}
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
             </div>
 
             {/* ── 직업/학력 (남30%/여20%) ── */}
@@ -475,6 +536,9 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
               <label className="rounded-xl border border-slate-200 p-3">
                 <div className="flex items-center text-xs text-slate-400">
                   체형
+                  {form.height && form.weight && suggestBodyType(form.height, form.weight, form.gender) === form.bodyType && (
+                    <span className="ml-1 rounded bg-blue-50 px-1 py-0.5 text-[9px] font-medium text-blue-600 border border-blue-100">BMI 추천</span>
+                  )}
                   <GradePill grade={grades.bodyType.grade} note={grades.bodyType.note} />
                   <WeightBadge gender={form.gender} fieldKey="bodyType" score={fs.bodyType} />
                 </div>
@@ -558,13 +622,96 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
 
             {/* ── 라이프스타일 (남7%/여5%) ── */}
             <SectionTitle icon="🎯" title="라이프스타일" desc="취미, 건강습관, 가치관 — 남7%/여5%" />
-            <div className="rounded-xl border border-slate-200 p-3">
-              <div className="flex items-center text-xs text-slate-400 mb-2.5">
-                취미 (복수 선택)
+            <div className="rounded-2xl border border-violet-200 bg-violet-50/30 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="h-2.5 w-2.5 rounded-full bg-violet-500" />
+                <span className="text-sm font-bold text-slate-800">취미 (복수 선택)</span>
                 <GradePill grade={grades.hobbies.grade} note={grades.hobbies.note} />
                 <WeightBadge gender={form.gender} fieldKey="hobbies" score={fs.hobbies} />
+                {form.hobbies.length > 0 && <span className="ml-auto rounded-full bg-violet-500 text-white px-2 py-0.5 text-xs font-bold">{form.hobbies.length}개</span>}
               </div>
-              <HobbyChipPicker selected={form.hobbies} onChange={(v) => set('hobbies', v)} />
+              {/* 선택된 취미 표시 */}
+              {form.hobbies.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {form.hobbies.map((item) => (
+                    <button key={item} type="button" onClick={() => set('hobbies', form.hobbies.filter((v) => v !== item))} className="rounded-full bg-violet-500 text-white px-3 py-1 text-xs font-bold hover:opacity-80">
+                      {item} ✕
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* 카테고리 탭 */}
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {hobbyCategoryOptions.map((cat) => {
+                  const isOpen = openHobbyCat === cat.key;
+                  const catCount = cat.items.filter((i) => form.hobbies.includes(i)).length;
+                  return (
+                    <button key={cat.key} type="button" onClick={() => setOpenHobbyCat(isOpen ? null : cat.key)}
+                      className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition ${isOpen ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                    >
+                      <span>{cat.icon}</span> {cat.label}
+                      {catCount > 0 && <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isOpen ? 'bg-white/20' : 'bg-violet-500 text-white'}`}>{catCount}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* 선택된 카테고리의 항목 */}
+              {openHobbyCat && (() => {
+                const cat = hobbyCategoryOptions.find((c) => c.key === openHobbyCat);
+                if (!cat) return null;
+                return (
+                  <div className="rounded-xl border border-slate-200 bg-white p-3">
+                    <div className="flex items-center gap-1.5 mb-2.5">
+                      <span className="text-base">{cat.icon}</span>
+                      <span className="text-sm font-bold text-slate-700">{cat.label}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {cat.items.map((item) => {
+                        const active = form.hobbies.includes(item);
+                        return (
+                          <button key={item} type="button" onClick={() => {
+                            if (active) set('hobbies', form.hobbies.filter((v) => v !== item));
+                            else set('hobbies', [...form.hobbies, item]);
+                          }}
+                            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${active ? 'bg-violet-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                          >{item}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+              {/* 직접 입력 */}
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  type="text"
+                  value={form.customHobby || ''}
+                  onChange={(e) => set('customHobby', e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const v = (form.customHobby || '').trim();
+                      if (v && !form.hobbies.includes(v)) {
+                        set('hobbies', [...form.hobbies, v]);
+                        set('customHobby', '');
+                      }
+                    }
+                  }}
+                  placeholder="목록에 없는 취미 직접 입력"
+                  className="flex-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-800 outline-none focus:border-violet-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const v = (form.customHobby || '').trim();
+                    if (v && !form.hobbies.includes(v)) {
+                      set('hobbies', [...form.hobbies, v]);
+                      set('customHobby', '');
+                    }
+                  }}
+                  className="shrink-0 rounded-lg bg-violet-100 px-3 py-1.5 text-xs font-bold text-violet-700 hover:bg-violet-200"
+                >+ 추가</button>
+              </div>
               {form.hobbies.length > 0 && (
                 <div className="mt-2 text-[11px] text-slate-500">
                   선택: {form.hobbies.length}개 — {form.hobbies.length >= 5 ? '매우 다양' : form.hobbies.length >= 3 ? '활발' : form.hobbies.length >= 2 ? '적당' : '보통'}
@@ -723,6 +870,79 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
               ))}
             </div>
 
+            {/* ── 이상형 조건 분류 (Phase 2-3) ── */}
+            {[
+              { key: 'mustHave', label: '절대 조건', color: 'rose', desc: '반드시 충족' },
+              { key: 'preferred', label: '선호 조건', color: 'blue', desc: '있으면 좋은' },
+              { key: 'dealBreaker', label: '거절 조건', color: 'slate', desc: '해당 시 거절' },
+            ].map(({ key, label, color, desc }) => {
+              const selected = form.idealConditions[key] || [];
+              const toggle = (item) => {
+                const updated = selected.includes(item) ? selected.filter((x) => x !== item) : [...selected, item];
+                set('idealConditions', { ...form.idealConditions, [key]: updated });
+              };
+              const activePill = color === 'rose' ? 'bg-rose-500 text-white' : color === 'blue' ? 'bg-blue-500 text-white' : 'bg-slate-700 text-white';
+              const openCat = openCondCat?.startsWith(key + '_') ? openCondCat.replace(key + '_', '') : null;
+              return (
+                <div key={key} className={`rounded-2xl border p-4 ${color === 'rose' ? 'border-rose-200 bg-rose-50/30' : color === 'blue' ? 'border-blue-200 bg-blue-50/30' : 'border-slate-200 bg-slate-50/30'}`}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`h-2.5 w-2.5 rounded-full ${color === 'rose' ? 'bg-rose-500' : color === 'blue' ? 'bg-blue-500' : 'bg-slate-500'}`} />
+                    <span className="text-sm font-bold text-slate-800">{label}</span>
+                    <span className="text-xs text-slate-400">{desc}</span>
+                    {selected.length > 0 && <span className={`ml-auto rounded-full px-2 py-0.5 text-xs font-bold ${activePill}`}>{selected.length}개</span>}
+                  </div>
+                  {/* 선택된 항목 */}
+                  {selected.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mb-3">
+                      {selected.map((item) => (
+                        <button key={item} type="button" onClick={() => toggle(item)} className={`rounded-full px-3 py-1 text-xs font-bold ${activePill} hover:opacity-80`}>
+                          {item} ✕
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {/* 카테고리 탭 */}
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {idealConditionCategories.map((cat) => {
+                      const isOpen = openCat === cat.key;
+                      const catCount = cat.items.filter((i) => selected.includes(i)).length;
+                      return (
+                        <button key={cat.key} type="button" onClick={() => setOpenCondCat(isOpen ? null : key + '_' + cat.key)}
+                          className={`flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition ${isOpen ? 'bg-slate-800 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                        >
+                          <span>{cat.icon}</span> {cat.label}
+                          {catCount > 0 && <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isOpen ? 'bg-white/20' : activePill}`}>{catCount}</span>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* 선택된 카테고리의 키워드 */}
+                  {openCat && (() => {
+                    const cat = idealConditionCategories.find((c) => c.key === openCat);
+                    if (!cat) return null;
+                    return (
+                      <div className="rounded-xl border border-slate-200 bg-white p-3">
+                        <div className="flex items-center gap-1.5 mb-2.5">
+                          <span className="text-base">{cat.icon}</span>
+                          <span className="text-sm font-bold text-slate-700">{cat.label}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {cat.items.map((item) => {
+                            const active = selected.includes(item);
+                            return (
+                              <button key={item} type="button" onClick={() => toggle(item)}
+                                className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition ${active ? activePill : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+                              >{item}</button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })}
+
             {/* ── 거주지 ── */}
             <SectionTitle icon="📍" title="거주지" />
             <div className="rounded-xl border border-slate-200 p-3">
@@ -735,20 +955,95 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
                 {locationCities.map((city) => <option key={city} value={city}>{city}</option>)}
               </select>
               {form.location && form.location.trim() && (
-                <select
-                  value={form.location.includes(' ') ? form.location.split(' ').slice(1).join(' ').trim() : ''}
-                  onChange={(e) => {
-                    const city = form.location.split(' ')[0];
-                    set('location', e.target.value ? `${city} ${e.target.value}` : `${city} `);
-                  }}
-                  className="mt-1.5 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm font-medium text-slate-800 outline-none"
-                >
-                  <option value="">구/군 선택</option>
-                  {(locationHierarchy[form.location.split(' ')[0]] || []).map((d) => (
-                    <option key={d} value={d}>{d}</option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    value={(() => {
+                      const parts = form.location.split(' ');
+                      return parts.length >= 2 ? parts[1] : '';
+                    })()}
+                    onChange={(e) => {
+                      const city = form.location.split(' ')[0];
+                      set('location', e.target.value ? `${city} ${e.target.value}` : `${city} `);
+                    }}
+                    className="mt-1.5 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm font-medium text-slate-800 outline-none"
+                  >
+                    <option value="">{form.location.split(' ')[0] === '해외' ? '국가 선택' : '구/군 선택'}</option>
+                    {(locationHierarchy[form.location.split(' ')[0]] || []).map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                  {form.location.split(' ')[0] === '해외' && form.location.split(' ')[1]?.trim() && (
+                    <input
+                      type="text"
+                      value={form.location.split(' ').slice(2).join(' ') || ''}
+                      onChange={(e) => {
+                        const parts = form.location.split(' ');
+                        set('location', `${parts[0]} ${parts[1]}${e.target.value ? ' ' + e.target.value : ''}`);
+                      }}
+                      placeholder="도시명 (예: LA, 도쿄, 런던)"
+                      className="mt-1.5 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-sm font-medium text-slate-800 outline-none focus:border-violet-400"
+                    />
+                  )}
+                </>
               )}
+            </div>
+
+            {/* ── 매니저 가산점 (최대 10점) ── */}
+            <SectionTitle icon="⭐" title="매니저 가산점" desc="매니저 주관 가산점 — 사유별 점수 책정 (합산 최대 10점)" />
+            <div className="space-y-2">
+              {form.managerBonusItems.map((item, idx) => {
+                const othersTotal = form.managerBonusItems.reduce((sum, b, i) => i === idx ? sum : sum + b.score, 0);
+                const maxForThis = Math.max(1, 10 - othersTotal);
+                return (
+                <div key={idx} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={item.reason}
+                    onChange={(e) => {
+                      const updated = [...form.managerBonusItems];
+                      updated[idx] = { ...updated[idx], reason: e.target.value };
+                      set('managerBonusItems', updated);
+                    }}
+                    placeholder="사유 (예: 가정적임, 생활력 강함)"
+                    className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 outline-none focus:border-violet-400"
+                  />
+                  <select
+                    value={Math.min(item.score, maxForThis)}
+                    onChange={(e) => {
+                      const updated = [...form.managerBonusItems];
+                      updated[idx] = { ...updated[idx], score: Number(e.target.value) };
+                      set('managerBonusItems', updated);
+                    }}
+                    className="w-20 rounded-lg border border-slate-200 px-2 py-2 text-sm font-medium text-slate-800 outline-none focus:border-violet-400"
+                  >
+                    {Array.from({ length: maxForThis }, (_, i) => i + 1).map((n) => <option key={n} value={n}>+{n}점</option>)}
+                  </select>
+                  <button type="button" onClick={() => set('managerBonusItems', form.managerBonusItems.filter((_, i) => i !== idx))} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-500">
+                    <X size={14} />
+                  </button>
+                </div>
+                );
+              })}
+              {(() => {
+                const totalBonus = form.managerBonusItems.reduce((sum, item) => sum + item.score, 0);
+                return (
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      disabled={totalBonus >= 10}
+                      onClick={() => set('managerBonusItems', [...form.managerBonusItems, { reason: '', score: 1 }])}
+                      className="flex items-center gap-1 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-500 hover:border-violet-400 hover:text-violet-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      <Plus size={12} /> 가산점 추가
+                    </button>
+                    {totalBonus > 0 && (
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${totalBonus > 10 ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        합산 +{totalBonus}점 {totalBonus > 10 ? '(10점 초과!)' : `/ 10점`}
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {/* ── 사진 ── */}
@@ -915,37 +1210,39 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
               </div>
             </div>
 
-            <InfoTooltip title="산정 로직 가이드" lines={[
-              '직업/학력 남30%/여20% — 직군등급(65%)+학력(35%)',
-              '경제력 남25%/여10% — 연봉(40%)+금융자산(35%)+부동산자산(25%)',
-              '외모/자기관리 남10%/여30% — 매니저주관(30%)+키(15%)+체형(15%)+스타일(15%)+탈모(15%)+BMI(10%)',
-              '집안/가족 남녀20% — 재력(20%)+부모자산(30%)+현직업(15%)+노후(15%)+과거직업(10%)+형제(5%)+리스크(5%)',
-              '나이/결혼적기 남8%/여15% — 여성: 35세↑ 급감(노산) / 남성: 45세↑ 감점(정자질)',
-              '라이프스타일 남7%/여5% — 취미(40%)+비흡연(35%)+음주(25%) / 종교 배점 없음',
-            ]} />
-
             <div className="mt-4 flex gap-3">
               <button onClick={onClose} className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-100">취소</button>
               <button
                 onClick={() => {
                   const newMember = {
-                    id: `M${String(Date.now()).slice(-3)}`,
+                    id: `M${String(Date.now()).slice(-6)}-${Math.random().toString(36).slice(2, 6)}`,
                     name: form.name,
                     age: 2026 - Number(form.birthYear),
                     gender: form.gender,
                     job: form.jobDetail || form.jobCategory,
                     jobCategory: form.jobCategory,
                     income: (form.income || 0) >= 10000 ? `${((form.income || 0) / 10000).toFixed(1)}억` : `${(form.income || 0).toLocaleString()}만`,
+                    rawIncome: form.income || 0,
                     edu: form.edu,
                     height: form.height,
                     weight: form.weight,
                     bodyType: form.bodyType,
                     assets: `금융 ${(form.financial || 0) >= 10000 ? ((form.financial || 0) / 10000).toFixed(1) + '억' : (form.financial || 0).toLocaleString() + '만'} / 부동산 ${(form.realEstate || 0) >= 10000 ? ((form.realEstate || 0) / 10000).toFixed(1) + '억' : (form.realEstate || 0).toLocaleString() + '만'}`,
+                    rawFinancial: form.financial || 0,
+                    rawRealEstate: form.realEstate || 0,
+                    birthYear: form.birthYear,
+                    birthMonth: form.birthMonth,
+                    birthDay: form.birthDay,
                     maritalStatus: form.maritalStatus,
                     hasChildren: form.hasChildren,
                     childrenCount: form.hasChildren ? (form.childrenCount || 1) : 0,
                     siblingComposition: `${form.brotherCount}남 ${form.sisterCount}녀`,
-                    birthOrder: form.birthOrder,
+                    birthOrder: (() => {
+                      const t = (form.brotherCount || 0) + (form.sisterCount || 0);
+                      if (t <= 1) return '외동';
+                      const lbl = form.brotherCount > 0 && form.sisterCount > 0 ? '남매' : form.brotherCount > 0 ? '형제' : '자매';
+                      return form.birthOrder ? `${form.brotherCount}남 ${form.sisterCount}녀 ${lbl} 중 ${form.birthOrder}째` : '';
+                    })(),
                     family: `${form.parentWealth || ''} / ${form.parentJob || ''} (자산 ${form.parentAssets || ''})`,
                     familyDetail: {
                       parentWealth: form.parentWealth,
@@ -957,6 +1254,8 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
                       familyRisk: form.familyRisk,
                     },
                     familyMemo: form.familyMemo,
+                    managerBonusItems: form.managerBonusItems.filter((item) => item.reason.trim()),
+                    managerBonus: dynamicPreview.managerBonus || 0,
                     appearanceNote: form.appearanceStyles.join(', ') + (form.appearanceMemo ? ` / ${form.appearanceMemo}` : ''),
                     faceType: form.faceType,
                     appearanceScore: form.appearanceScore,
@@ -972,6 +1271,7 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
                       birthDate: `${form.birthYear}-${String(form.birthMonth).padStart(2, '0')}-${String(form.birthDay).padStart(2, '0')}`,
                       birthTime: form.birthTimeUnknown ? null : `${String(form.birthHour).padStart(2, '0')}:${String(form.birthMinute).padStart(2, '0')}`,
                       birthTimeUnknown: form.birthTimeUnknown,
+                      birthPlace: (form.birthPlace || '').trim(),
                     },
                     grade: {
                       overallScore: dynamicPreview.overallScore,
@@ -1008,16 +1308,26 @@ export default function MemberRegistrationModal({ open, onClose, onSave, scoreRu
                     religion: form.religion,
                     mbti: form.mbti,
                     idealType: form.idealType,
+                    idealConditions: form.idealConditions,
+                    phone: form.phone,
+                    contractDate: new Date().toISOString().split('T')[0],
+                    contractEndDate: (() => { const d = new Date(); d.setFullYear(d.getFullYear() + 1); return d.toISOString().split('T')[0]; })(),
+                    fee: null,
+                    successFee: null,
+                    paymentStatus: '미등록',
                   };
                   onSave(newMember);
+                  addLog({ action: LOG_ACTIONS.MEMBER_CREATE, target: 'member', targetId: newMember.id, detail: `${newMember.name} (${newMember.gender === 'M' ? '남' : '여'}, ${newMember.age}세)` });
                   showToast(`${newMember.name} 회원이 등록되었습니다.`, 'emerald');
                   onClose();
                 }}
-                className="flex-1 rounded-xl bg-violet-600 px-4 py-3 text-sm font-bold text-white hover:bg-violet-700"
+                disabled={!form.name.trim()}
+                className="flex-1 rounded-xl bg-violet-600 px-4 py-3 text-sm font-bold text-white hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 회원 저장
               </button>
             </div>
+
           </aside>
         </div>
       </div>

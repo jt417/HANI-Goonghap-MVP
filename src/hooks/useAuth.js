@@ -3,7 +3,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import useAppStore from '../stores/appStore';
 
 export function useAuth() {
-  const { user, profile, setUser, setProfile } = useAppStore();
+  const { user, profile, setUser, setProfile, setUserRole } = useAppStore();
   const initialized = useRef(false);
 
   const fetchProfile = useCallback(async (userId) => {
@@ -26,8 +26,7 @@ export function useAuth() {
     initialized.current = true;
 
     if (!isSupabaseConfigured()) {
-      setUser({ id: 'demo', email: 'demo@hani.kr' });
-      setProfile({ full_name: '이팀장', role: 'manager', agency_name: '압구정 노블레스 파트너스' });
+      // Demo mode: don't auto-login, wait for role selection
       return;
     }
 
@@ -48,15 +47,21 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, [setUser, setProfile, fetchProfile]);
 
-  const signIn = useCallback(async (email, password) => {
+  const signIn = useCallback(async (email, password, role = 'manager') => {
     if (!isSupabaseConfigured()) {
-      setUser({ id: 'demo', email });
-      setProfile({ full_name: '이팀장', role: 'manager', agency_name: '압구정 노블레스 파트너스' });
+      const roleProfiles = {
+        manager: { full_name: '이팀장', role: 'manager', agency_name: '압구정 노블레스 파트너스' },
+        admin: { full_name: '관리자', role: 'admin', agency_name: 'HANI 본사' },
+        individual: { full_name: '김민지', role: 'individual', agency_name: null },
+      };
+      setUser({ id: `demo-${role}`, email });
+      setProfile(roleProfiles[role] || roleProfiles.manager);
+      setUserRole(role);
       return { error: null };
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
-  }, [setUser, setProfile]);
+  }, [setUser, setProfile, setUserRole]);
 
   const signUp = useCallback(async (email, password, fullName) => {
     if (!isSupabaseConfigured()) {

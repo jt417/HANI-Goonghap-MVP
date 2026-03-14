@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Shield, AlertTriangle, Scale, FileSearch, Ban, Plus,
   Clock, MessageSquare, Send, Search, X, CheckCircle2,
-  ChevronLeft, ChevronRight, ArrowRight, Users,
+  ChevronLeft, ChevronRight, ArrowRight, Users, FilePlus, FileText,
 } from 'lucide-react';
 import useAppStore from '../stores/appStore';
 import { useDisputes } from '../hooks/useDisputes';
@@ -258,12 +258,15 @@ function NewDisputeModal({ onClose, onSubmit }) {
    ══════════════════════════════════════════════════════════ */
 
 export default function DisputePage() {
-  const { items, loading, fetchDisputes, updateLevel, createDispute } = useDisputes();
+  const { items, loading, fetchDisputes, updateLevel, updateDispute, createDispute } = useDisputes();
   const showToast = useAppStore((s) => s.showToast);
   const [selected, setSelected] = useState(null);
   const [activeFilter, setActiveFilter] = useState('전체');
   const [searchTerm, setSearchTerm] = useState('');
   const [showNewForm, setShowNewForm] = useState(false);
+  const [appealModal, setAppealModal] = useState(false);
+  const [appealReason, setAppealReason] = useState('');
+  const [newEvidence, setNewEvidence] = useState({ label: '', type: 'document' });
 
   useEffect(() => { fetchDisputes(); }, [fetchDisputes]);
   /* auto-select removed — on mobile the list should stay visible */
@@ -321,7 +324,46 @@ export default function DisputePage() {
 
   const handleEvidenceRequest = () => {
     if (!selected) return;
+    const now = new Date();
+    const dateStr = `${now.getMonth() + 1}/${now.getDate()}`;
+    const reqEvidence = { id: `EV-${Date.now()}`, label: '증빙 요청됨', type: 'document', submittedBy: 'partner', submittedAt: dateStr, status: '요청됨' };
+    const updatedEvidences = [...(selected.evidences || []), reqEvidence];
+    const updatedTimeline = [...(selected.timeline || []), { date: dateStr, action: `증빙 자료 요청 전달`, by: selected.owner || '운영관리자' }];
+    updateDispute(selected.id, { evidences: updatedEvidences, timeline: updatedTimeline });
+    setSelected((prev) => prev ? { ...prev, evidences: updatedEvidences, timeline: updatedTimeline } : prev);
     showToast(`${selected.partner}에 증빙 자료 요청이 전달되었습니다.`, 'indigo');
+  };
+
+  const handleAddEvidence = () => {
+    if (!selected || !newEvidence.label.trim()) return;
+    const now = new Date();
+    const dateStr = `${now.getMonth() + 1}/${now.getDate()}`;
+    const ev = { id: `EV-${Date.now()}`, label: newEvidence.label.trim(), type: newEvidence.type, submittedBy: 'our', submittedAt: dateStr, status: '제출됨' };
+    const updatedEvidences = [...(selected.evidences || []), ev];
+    updateDispute(selected.id, { evidences: updatedEvidences });
+    setSelected((prev) => prev ? { ...prev, evidences: updatedEvidences } : prev);
+    setNewEvidence({ label: '', type: 'document' });
+    showToast('증빙 자료가 추가되었습니다.', 'emerald');
+  };
+
+  const handleEvidenceStatus = (evId, newStatus) => {
+    if (!selected) return;
+    const updatedEvidences = (selected.evidences || []).map((ev) => ev.id === evId ? { ...ev, status: newStatus } : ev);
+    updateDispute(selected.id, { evidences: updatedEvidences });
+    setSelected((prev) => prev ? { ...prev, evidences: updatedEvidences } : prev);
+  };
+
+  const handleAppeal = () => {
+    if (!selected || !appealReason.trim()) return;
+    const now = new Date();
+    const dateStr = `${now.getMonth() + 1}/${now.getDate()}`;
+    const updatedTimeline = [...(selected.timeline || []), { date: dateStr, action: `재심 요청: ${appealReason.trim()}`, by: selected.owner || '운영관리자' }];
+    updateLevel(selected.id, '중재중');
+    updateDispute(selected.id, { timeline: updatedTimeline });
+    setSelected((prev) => prev ? { ...prev, level: '중재중', timeline: updatedTimeline, updated: '방금' } : prev);
+    showToast('재심 요청이 접수되었습니다.', 'amber');
+    setAppealModal(false);
+    setAppealReason('');
   };
 
   /* ── Summary cards config ────────────────────────────── */
@@ -549,6 +591,61 @@ export default function DisputePage() {
               </div>
             )}
 
+            {/* Evidence section */}
+            <div className="rounded-2xl border border-slate-200 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                  <FileSearch size={15} /> 증빙 자료
+                  <span className="rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-500">{(selected.evidences || []).length}</span>
+                </div>
+              </div>
+              {(selected.evidences || []).length > 0 ? (
+                <div className="space-y-2 mb-3">
+                  {(selected.evidences || []).map((ev) => {
+                    const statusStyle = ev.status === '채택' ? 'bg-emerald-100 text-emerald-700' : ev.status === '반려' ? 'bg-rose-100 text-rose-700' : ev.status === '요청됨' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700';
+                    return (
+                      <div key={ev.id} className="flex items-center gap-2 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2">
+                        <FileText size={13} className="shrink-0 text-slate-400" />
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm text-slate-700 truncate">{ev.label}</div>
+                          <div className="text-[10px] text-slate-400">{ev.submittedBy === 'our' ? '우리측' : '상대측'} · {ev.submittedAt}</div>
+                        </div>
+                        {ev.status !== '요청됨' ? (
+                          <div className="flex gap-1">
+                            <button onClick={() => handleEvidenceStatus(ev.id, '채택')} className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${ev.status === '채택' ? statusStyle : 'bg-slate-100 text-slate-400 hover:bg-emerald-50'}`}>채택</button>
+                            <button onClick={() => handleEvidenceStatus(ev.id, '반려')} className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${ev.status === '반려' ? statusStyle : 'bg-slate-100 text-slate-400 hover:bg-rose-50'}`}>반려</button>
+                          </div>
+                        ) : (
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusStyle}`}>{ev.status}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center text-xs text-slate-400 py-3 mb-3">등록된 증빙 자료가 없습니다</div>
+              )}
+              {/* Add evidence form */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newEvidence.label}
+                  onChange={(e) => setNewEvidence({ ...newEvidence, label: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && handleAddEvidence()}
+                  placeholder="증빙 자료명 (예: 카톡 대화 캡처)"
+                  className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400"
+                />
+                <select value={newEvidence.type} onChange={(e) => setNewEvidence({ ...newEvidence, type: e.target.value })} className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs outline-none">
+                  <option value="document">문서</option>
+                  <option value="screenshot">캡처</option>
+                  <option value="message">메시지</option>
+                </select>
+                <button onClick={handleAddEvidence} disabled={!newEvidence.label.trim()} className="rounded-lg bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-40">
+                  <FilePlus size={13} />
+                </button>
+              </div>
+            </div>
+
             {/* Message thread */}
             <MessageThread itemId={selected.id} />
 
@@ -588,14 +685,22 @@ export default function DisputePage() {
                     </button>
                   )}
                   {selected.level === '패널티' && (
-                    <button onClick={() => handleLevel('중재중')}
+                    <button onClick={() => setAppealModal(true)}
                       className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition">
                       재심 요청
                     </button>
                   )}
 
                   <button onClick={() => {
-                    if (window.confirm(`${selected.partner} 분쟁을 해결 처리하시겠습니까?`)) handleLevel('해결');
+                    // A-6: 증빙 자료가 있는 경우 미검토 건 확인
+                    const evidences = selected.evidences || [];
+                    const unreviewed = evidences.filter((ev) => ev.status === '제출됨' || ev.status === '요청됨');
+                    if (unreviewed.length > 0) {
+                      if (!window.confirm(`미검토 증빙 자료 ${unreviewed.length}건이 있습니다. 그래도 해결 처리하시겠습니까?`)) return;
+                    } else {
+                      if (!window.confirm(`${selected.partner} 분쟁을 해결 처리하시겠습니까?`)) return;
+                    }
+                    handleLevel('해결');
                   }}
                     className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 transition">
                     <CheckCircle2 size={14} /> 해결 처리
@@ -611,6 +716,27 @@ export default function DisputePage() {
 
       {/* New dispute modal */}
       {showNewForm && <NewDisputeModal onClose={() => setShowNewForm(false)} onSubmit={handleNewDispute} />}
+
+      {/* Appeal reason modal */}
+      {appealModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setAppealModal(false)}>
+          <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-slate-900">재심 요청</h3>
+            <p className="mt-1 text-sm text-slate-500">{selected?.partner} 건에 대한 재심 사유를 입력하세요.</p>
+            <textarea
+              value={appealReason}
+              onChange={(e) => setAppealReason(e.target.value)}
+              rows={3}
+              placeholder="재심 사유를 구체적으로 기술하세요..."
+              className="mt-3 w-full resize-none rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-amber-400"
+            />
+            <div className="mt-4 flex gap-2">
+              <button onClick={() => { setAppealModal(false); setAppealReason(''); }} className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50">취소</button>
+              <button onClick={handleAppeal} disabled={!appealReason.trim()} className="flex-1 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-amber-600 disabled:opacity-40">재심 요청</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

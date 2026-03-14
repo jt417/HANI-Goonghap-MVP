@@ -56,11 +56,19 @@ export const statusToneMap = {
   '소개 확정': 'bg-emerald-100 text-emerald-800 border-emerald-200',
   철회: 'bg-rose-100 text-rose-800 border-rose-200',
   해결: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  발송됨: 'bg-amber-100 text-amber-800 border-amber-200',
+  동의: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  거절: 'bg-rose-100 text-rose-800 border-rose-200',
   '신규 상담': 'bg-blue-100 text-blue-800 border-blue-200',
   '소개 가능': 'bg-emerald-100 text-emerald-800 border-emerald-200',
   '소개 진행중': 'bg-violet-100 text-violet-800 border-violet-200',
   '보류': 'bg-amber-100 text-amber-800 border-amber-200',
   '휴면': 'bg-slate-100 text-slate-500 border-slate-200',
+  반려: 'bg-rose-100 text-rose-800 border-rose-200',
+  만료: 'bg-slate-100 text-slate-500 border-slate-200',
+  매칭중: 'bg-pink-100 text-pink-800 border-pink-200',
+  성혼: 'bg-rose-100 text-rose-700 border-rose-200',
+  탈퇴: 'bg-slate-100 text-slate-400 border-slate-200',
 };
 
 export const reminderCycleOptions = [
@@ -72,7 +80,7 @@ export const reminderCycleOptions = [
 
 export const managerList = ['이팀장', '최수석', '김매니저', '박실장'];
 
-export const memberStatusOptions = ['신규 상담', '소개 가능', '소개 진행중', '보류', '휴면'];
+export const memberStatusOptions = ['신규 상담', '소개 가능', '소개 진행중', '매칭중', '성혼', '보류', '휴면', '탈퇴'];
 
 export const meetingTypeColors = {
   '상담': 'bg-indigo-100 text-indigo-700 border-indigo-200',
@@ -82,10 +90,43 @@ export const meetingTypeColors = {
   '계약': 'bg-rose-100 text-rose-700 border-rose-200',
 };
 
-export const bodyTypeOptions = {
-  M: ['슬림', '슬림탄탄', '균형형', '건장', '근육형', '통통', '보통'],
-  F: ['슬림', '슬림탄탄', '균형형', '글래머', '건강미', '통통', '보통'],
+export const counselingTypes = ['초기 상담', '정기 상담', '긴급 상담', '불만 접수', '성혼 상담'];
+export const counselingChannels = ['전화', '대면', '카카오톡', '문자'];
+export const counselingTypeColors = {
+  '초기 상담': 'bg-blue-100 text-blue-700 border-blue-200',
+  '정기 상담': 'bg-emerald-100 text-emerald-700 border-emerald-200',
+  '긴급 상담': 'bg-rose-100 text-rose-700 border-rose-200',
+  '불만 접수': 'bg-amber-100 text-amber-700 border-amber-200',
+  '성혼 상담': 'bg-violet-100 text-violet-700 border-violet-200',
 };
+
+export const bodyTypeOptions = {
+  M: ['슬림', '슬림탄탄', '균형형', '건장', '근육형', '마른', '보통', '통통', '과체중'],
+  F: ['슬림', '슬림탄탄', '균형형', '글래머', '건강미', '마른', '보통', '통통', '볼륨', '과체중'],
+};
+
+/* BMI 기반 체형 자동 추천 (매니저가 변경 가능) */
+export function suggestBodyType(height, weight, gender) {
+  if (!height || !weight) return null;
+  const bmi = weight / ((height / 100) ** 2);
+  if (gender === 'F') {
+    if (bmi < 16.5) return '마른';
+    if (bmi < 18)   return '슬림';
+    if (bmi < 19.5) return '슬림탄탄';
+    if (bmi < 21.5) return '균형형';
+    if (bmi < 23.5) return '건강미';
+    if (bmi < 25.5) return '볼륨';
+    if (bmi < 28)   return '통통';
+    return '과체중';
+  }
+  if (bmi < 18)   return '마른';
+  if (bmi < 20)   return '슬림';
+  if (bmi < 22)   return '슬림탄탄';
+  if (bmi < 24)   return '균형형';
+  if (bmi < 26)   return '건장';
+  if (bmi < 28)   return '통통';
+  return '과체중';
+}
 
 export const eduOptions = [
   '고졸',
@@ -128,6 +169,10 @@ export const locationHierarchy = {
   '전남': ['여수', '순천', '목포'],
   '전북': ['전주', '익산'],
   '강원': ['춘천', '원주', '강릉', '속초'],
+  '해외': [
+    '미국', '캐나다', '영국', '호주', '일본', '중국', '싱가포르',
+    '독일', '프랑스', '뉴질랜드', '베트남', '태국', '필리핀', '기타',
+  ],
 };
 
 /* 시/도 목록 (표시 순서) */
@@ -212,29 +257,40 @@ export const appearanceStyleOptions = {
   ],
 };
 
-/* ── 취미 (복수 선택) ── */
-export const hobbyOptions = [
-  { value: '골프', emoji: '⛳' },
-  { value: '테니스', emoji: '🎾' },
-  { value: '필라테스/요가', emoji: '🧘' },
-  { value: '헬스/크로스핏', emoji: '🏋️' },
-  { value: '러닝/마라톤', emoji: '🏃' },
-  { value: '수영', emoji: '🏊' },
-  { value: '등산/하이킹', emoji: '🥾' },
-  { value: '여행', emoji: '✈️' },
-  { value: '와인/미식', emoji: '🍷' },
-  { value: '독서', emoji: '📚' },
-  { value: '영화/넷플릭스', emoji: '🎬' },
-  { value: '캠핑', emoji: '🏕️' },
-  { value: '음악/악기', emoji: '🎵' },
-  { value: '요리/베이킹', emoji: '🍳' },
-  { value: '반려동물', emoji: '🐶' },
-  { value: '투자/재테크', emoji: '📈' },
-  { value: '사진/영상', emoji: '📸' },
-  { value: '게임', emoji: '🎮' },
-  { value: '봉사활동', emoji: '🤝' },
-  { value: '드라이브', emoji: '🚗' },
+/* ── 취미 (카테고리별 복수 선택) ── */
+export const hobbyCategoryOptions = [
+  { key: 'sports', label: '스포츠/운동', icon: '🏃', items: [
+    '골프', '테니스', '배드민턴', '탁구', '볼링',
+    '필라테스/요가', '헬스/크로스핏', '러닝/마라톤', '수영',
+    '축구/풋살', '농구', '발레/댄스', '복싱/주짓수', '클라이밍',
+    '스키/보드', '서핑', '자전거', '승마',
+  ]},
+  { key: 'outdoor', label: '아웃도어/여행', icon: '🏕️', items: [
+    '등산/하이킹', '캠핑/글램핑', '낚시', '드라이브',
+    '국내여행', '해외여행', '배낭여행', '호캉스',
+    '스쿠버다이빙', '패러글라이딩',
+  ]},
+  { key: 'food', label: '미식/요리', icon: '🍷', items: [
+    '와인/위스키', '맛집탐방', '카페투어', '홈쿡/요리',
+    '베이킹', '커피/바리스타', '티/다도', '전통주',
+  ]},
+  { key: 'culture', label: '문화/예술', icon: '🎭', items: [
+    '영화/넷플릭스', '뮤지컬/연극', '전시/갤러리', '콘서트/페스티벌',
+    '독서', '글쓰기', '음악감상', '악기연주',
+    '미술/그림', '사진/영상', '공예/DIY',
+  ]},
+  { key: 'social', label: '사교/자기계발', icon: '🤝', items: [
+    '봉사활동', '종교활동', '독서모임/북클럽', '스터디/자격증',
+    '외국어', '투자/재테크', '부동산', '창업/사이드프로젝트',
+    '네트워킹/모임',
+  ]},
+  { key: 'lifestyle', label: '라이프스타일', icon: '🏠', items: [
+    '반려동물', '식물/가드닝', '인테리어', '명상/마음챙김',
+    '쇼핑', '패션/뷰티', '게임', 'K-POP/아이돌',
+    '유튜브/콘텐츠', '보드게임',
+  ]},
 ];
+export const hobbyOptions = hobbyCategoryOptions.flatMap((c) => c.items.map((item) => ({ value: item, emoji: c.icon })));
 
 /* ── 탈모 상태 옵션 (성별 분리) ── */
 export const hairLossOptions = {
@@ -387,7 +443,7 @@ export const compareColumns = [
 ];
 
 /* ── 정산 단계 / 상태 ── */
-export const settlementStages = ['소개 완료', '교제 진입', '교제 유지', '성사 후보', '성사 확정'];
+export const settlementStages = ['소개 완료', '교제 진입', '교제 유지', '성혼 후보', '성혼 확정'];
 export const settlementStatuses = ['정산 예정', '검수중', '대기', '정산완료'];
 
 /* ── 이상형 선호도 ── */
@@ -406,6 +462,78 @@ export const idealTypeCategories = [
   { key: 'age', label: '나이', icon: '📅', desc: '결혼적기' },
   { key: 'lifestyle', label: '라이프스타일', icon: '🎯', desc: '취미, 건강습관' },
   { key: 'family', label: '집안', icon: '🏠', desc: '가족 배경' },
+];
+
+/* ── 이상형 조건 프리셋 (Phase 2-3) ── */
+export const idealConditionCategories = [
+  { key: 'appearance', label: '외모/체형', icon: '✨', items: [
+    '키 160+', '키 165+', '키 170+', '키 175+', '키 180+',
+    '슬림 체형', '균형 체형', '글래머 체형', '건장 체형',
+    '동안', '관리 잘함', '패션 감각', '자연미인', '비만 아님',
+  ]},
+  { key: 'career', label: '직업/학력', icon: '💼', items: [
+    '전문직', '공무원', '대기업', '기업가', '프리랜서', 'IT/스타트업',
+    '의사', '변호사', '약사', '회계사', '교수/연구직',
+    '고졸 이상', '대졸 이상', '인서울 대학', 'SKY', '석/박사', '해외대학',
+    '안정적 직장',
+  ]},
+  { key: 'wealth', label: '경제력', icon: '💰', items: [
+    '연봉 5천+', '연봉 7천+', '연봉 1억+', '연봉 1.5억+', '연봉 2억+',
+    '자산 3억+', '자산 5억+', '자산 10억+', '자산 20억+',
+    '자가 보유', '차량 보유', '부모 자산가',
+  ]},
+  { key: 'age', label: '나이', icon: '📅', items: [
+    '연상만', '연하만', '동갑만', '동갑~3살 차이', '5살 이내', '10살 이내',
+    '20대', '30대 초반', '30대', '35세 이하', '40세 이하',
+  ]},
+  { key: 'family', label: '집안/가족', icon: '🏠', items: [
+    '외동 아님', '장남 아님', '장녀 아님',
+    '이혼 경력 없음', '자녀 없음', '재혼 가능',
+    '부모 건재', '시부모 동거 안함', '부모 간섭 적음',
+    '형제자매 있음',
+  ]},
+  { key: 'lifestyle', label: '라이프스타일', icon: '🎯', items: [
+    '비흡연', '음주 안함', '음주 가끔',
+    '맞벌이 선호', '전업주부 가능', '자녀 계획 있음', '자녀 계획 없음(DINK)',
+    '반려동물 좋아함', '반려동물 없음',
+    '종교 없음', '기독교', '불교', '천주교',
+  ]},
+  { key: 'location', label: '거주지', icon: '📍', items: [
+    '서울 거주', '강남/서초/송파', '수도권 거주', '경기 남부', '판교/분당',
+    '같은 생활권', '장거리 가능', '해외 거주',
+  ]},
+  { key: 'personality', label: '성격/가치관', icon: '💬', items: [
+    '외향적', '내향적', '유머 있는', '차분한', '적극적',
+    '가정적', '커리어 중시', '자기계발형', '감성적', '이성적',
+    '대화 잘 통하는', '예의 바른', '독립적',
+  ]},
+  { key: 'hobby', label: '취미/관심사', icon: '🎨', items: [
+    '골프', '테니스', '헬스/크로스핏', '필라테스/요가', '러닝/마라톤', '등산',
+    '여행', '해외여행', '캠핑', '드라이브',
+    '와인/미식', '카페/맛집', '요리',
+    '독서', '영화/넷플릭스', '공연/전시',
+    '반려동물', '게임', '사진/영상', '음악',
+  ]},
+];
+
+/* 하위 호환용 flat 리스트 */
+export const idealConditionPresets = idealConditionCategories.flatMap((c) => c.items);
+
+export const consentStatusOptions = ['대기', '발송됨', '동의', '거절'];
+export const postConsentOptions = ['약속 장소 잡기', '연락처만 전달'];
+
+/* ── 제안 반려/거절 사유 코드 (Phase 2-4) ── */
+export const rejectionReasons = [
+  { code: 'SPEC_MISMATCH', label: '조건 불일치', desc: '이상형 조건에 부합하지 않음' },
+  { code: 'AGE_GAP', label: '나이 차이', desc: '연령대가 맞지 않음' },
+  { code: 'LOCATION', label: '거주지 거리', desc: '생활권이 너무 멀음' },
+  { code: 'INCOME', label: '소득 수준', desc: '경제적 조건 불일치' },
+  { code: 'EDU', label: '학력 차이', desc: '학력 조건 불일치' },
+  { code: 'RELIGION', label: '종교 차이', desc: '종교 관련 조건 불일치' },
+  { code: 'MEMBER_REFUSE', label: '회원 거절', desc: '우리 회원이 소개를 원하지 않음' },
+  { code: 'ALREADY_MATCHED', label: '다른 소개 진행중', desc: '현재 다른 소개가 진행 중' },
+  { code: 'LOW_SCORE', label: '매칭 점수 낮음', desc: '종합 매칭 점수가 기준 미달' },
+  { code: 'OTHER', label: '기타', desc: '기타 사유' },
 ];
 
 export const disputeCategories = ['우회접촉', '허위정보', '정산분쟁', '정보무단공유', '약속불이행', '프로필도용'];

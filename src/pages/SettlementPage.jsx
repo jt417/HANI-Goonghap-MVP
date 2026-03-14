@@ -3,6 +3,7 @@ import { Wallet, CheckCircle2, Clock, AlertTriangle, ArrowUpRight, ArrowDownRigh
 import StatusChip from '../components/common/StatusChip';
 import useAppStore from '../stores/appStore';
 import { useSettlements } from '../hooks/useSettlements';
+import { useDisputes } from '../hooks/useDisputes';
 import { useMessages } from '../hooks/useMessages';
 import { settlementStages, settlementStatuses } from '../lib/constants';
 
@@ -26,27 +27,26 @@ function getStatusIndex(status) {
   return idx >= 0 ? idx : 0;
 }
 
-/* ───── 지연 판별 (3월 기준) ───── */
+/* ───── 날짜 파서 (3월 20일 / 2026.03.24 둘 다 지원) ───── */
+function parseDueDate(dueStr) {
+  if (!dueStr || dueStr === '미정') return null;
+  const korMatch = dueStr.match(/(\d+)월\s*(\d+)일/);
+  if (korMatch) return new Date(new Date().getFullYear(), parseInt(korMatch[1]) - 1, parseInt(korMatch[2]));
+  const dotMatch = dueStr.match(/(\d{4})\.(\d{2})\.(\d{2})/);
+  if (dotMatch) return new Date(parseInt(dotMatch[1]), parseInt(dotMatch[2]) - 1, parseInt(dotMatch[3]));
+  return null;
+}
+function daysOverdue(dueStr) {
+  const due = parseDueDate(dueStr);
+  if (!due) return -1;
+  return Math.floor((new Date() - due) / (1000 * 60 * 60 * 24));
+}
 function isDueSoon(dueStr) {
-  if (!dueStr) return false;
-  const match = dueStr.match(/(\d+)월\s*(\d+)일/);
-  if (!match) return false;
-  const month = parseInt(match[1]);
-  const day = parseInt(match[2]);
-  const now = new Date();
-  const dueDate = new Date(now.getFullYear(), month - 1, day);
-  const diff = (dueDate - now) / (1000 * 60 * 60 * 24);
-  return diff <= 3 && diff >= 0;
+  const d = daysOverdue(dueStr);
+  return d >= -3 && d < 0;
 }
 function isOverdue(dueStr) {
-  if (!dueStr) return false;
-  const match = dueStr.match(/(\d+)월\s*(\d+)일/);
-  if (!match) return false;
-  const month = parseInt(match[1]);
-  const day = parseInt(match[2]);
-  const now = new Date();
-  const dueDate = new Date(now.getFullYear(), month - 1, day);
-  return dueDate < now;
+  return daysOverdue(dueStr) > 0;
 }
 
 /* ───── KPI 카드 ───── */
@@ -178,9 +178,17 @@ const filterTabs = [
 ];
 
 /* ───── 상세 패널 ───── */
-function SettlementDetailPanel({ item, onAction }) {
+function SettlementDetailPanel({ item, onAction, onUpdate }) {
   const [msgInput, setMsgInput] = useState('');
+  const [editSplit, setEditSplit] = useState(false);
+  const [splitValue, setSplitValue] = useState(50);
   const { messages, sendMessage } = useMessages(item?.id);
+
+  // Reset edit state when switching items
+  useEffect(() => {
+    setEditSplit(false);
+    setSplitValue(parseInt(item?.split?.split(':')[0]) || 50);
+  }, [item?.id]);
   const showToast = useAppStore((s) => s.showToast);
 
   if (!item) {
@@ -202,11 +210,12 @@ function SettlementDetailPanel({ item, onAction }) {
 
   const overdue = isOverdue(item.due);
   const dueSoon = isDueSoon(item.due);
+  const isMarriage = item.type === '성혼비';
   const myShare = item.split ? parseInt(item.split.split(':')[0]) : 50;
   const partnerShare = item.split ? parseInt(item.split.split(':')[1]) : 50;
   const totalAmt = parseAmount(item.amount);
-  const myAmt = Math.round(totalAmt * myShare / 100);
-  const partnerAmt = totalAmt - myAmt;
+  const myAmt = isMarriage ? totalAmt : Math.round(totalAmt * myShare / 100);
+  const partnerAmt = isMarriage ? 0 : totalAmt - myAmt;
 
   return (
     <aside className="flex flex-col border-l border-slate-200 bg-white overflow-y-auto">
@@ -228,27 +237,48 @@ function SettlementDetailPanel({ item, onAction }) {
 
         {/* 금액 정보 */}
         <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-4">
-          <div className="text-xs font-bold text-slate-500">정산 금액</div>
+          <div className="flex items-center gap-2">
+            <div className="text-xs font-bold text-slate-500">정산 금액</div>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${isMarriage ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
+              {item.type || '매칭비'}
+            </span>
+          </div>
           <div className="mt-2 text-3xl font-bold text-slate-900">{item.amount}<span className="ml-0.5 text-lg text-slate-400">원</span></div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="rounded-xl bg-violet-50 p-3 text-center">
-              <div className="text-[11px] text-violet-500">우리 측 ({myShare}%)</div>
-              <div className="mt-1 text-base font-bold text-violet-800">{formatAmount(myAmt)}</div>
+
+          {isMarriage ? (
+            /* 성혼비: 회원 직접 청구 */
+            <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3">
+              <div className="text-[11px] font-bold text-amber-700">회원 직접 청구</div>
+              <div className="mt-1 text-sm text-amber-900">
+                <span className="font-bold">{item.chargedTo}</span> 회원에게 성혼비 청구
+              </div>
+              <p className="mt-1.5 text-[10px] text-amber-600 leading-4">
+                상대측 회원의 성혼비는 파트너({item.partner})가 별도 청구
+              </p>
             </div>
-            <div className="rounded-xl bg-slate-100 p-3 text-center">
-              <div className="text-[11px] text-slate-500">파트너 ({partnerShare}%)</div>
-              <div className="mt-1 text-base font-bold text-slate-700">{formatAmount(partnerAmt)}</div>
-            </div>
-          </div>
-          {/* 배분 비율 바 */}
-          <div className="mt-3 flex h-2 overflow-hidden rounded-full">
-            <div className="bg-violet-500" style={{ width: `${myShare}%` }} />
-            <div className="bg-slate-300" style={{ width: `${partnerShare}%` }} />
-          </div>
-          <div className="mt-1 flex justify-between text-[10px] text-slate-400">
-            <span>우리 {myShare}%</span>
-            <span>{partnerShare}% 파트너</span>
-          </div>
+          ) : (
+            /* 매칭비: 업체 간 분배 */
+            <>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <div className="rounded-xl bg-violet-50 p-3 text-center">
+                  <div className="text-[11px] text-violet-500">우리 측 ({myShare}%)</div>
+                  <div className="mt-1 text-base font-bold text-violet-800">{formatAmount(myAmt)}</div>
+                </div>
+                <div className="rounded-xl bg-slate-100 p-3 text-center">
+                  <div className="text-[11px] text-slate-500">파트너 ({partnerShare}%)</div>
+                  <div className="mt-1 text-base font-bold text-slate-700">{formatAmount(partnerAmt)}</div>
+                </div>
+              </div>
+              <div className="mt-3 flex h-2 overflow-hidden rounded-full">
+                <div className="bg-violet-500" style={{ width: `${myShare}%` }} />
+                <div className="bg-slate-300" style={{ width: `${partnerShare}%` }} />
+              </div>
+              <div className="mt-1 flex justify-between text-[10px] text-slate-400">
+                <span>우리 {myShare}%</span>
+                <span>{partnerShare}% 파트너</span>
+              </div>
+            </>
+          )}
         </div>
 
         {/* 상세 필드 */}
@@ -268,8 +298,8 @@ function SettlementDetailPanel({ item, onAction }) {
             <div className={`mt-1 text-sm font-medium ${overdue ? 'text-rose-800' : dueSoon ? 'text-amber-800' : 'text-slate-800'}`}>{item.due}</div>
           </div>
           <div className="rounded-xl border border-slate-200 p-3">
-            <div className="text-[11px] text-slate-400">배분 비율</div>
-            <div className="mt-1 text-sm font-bold text-slate-800">{item.split}</div>
+            <div className="text-[11px] text-slate-400">{isMarriage ? '청구 대상' : '배분 비율'}</div>
+            <div className="mt-1 text-sm font-bold text-slate-800">{isMarriage ? `${item.chargedTo} 회원` : item.split}</div>
           </div>
         </div>
 
@@ -322,18 +352,51 @@ function SettlementDetailPanel({ item, onAction }) {
             <CheckCircle2 size={16} /> 정산 완료 처리됨
           </div>
         ) : (
+          <>
+          {/* 배분 조정 슬라이더 (매칭비만) */}
+          {editSplit && !isMarriage && (
+            <div className="mb-3 rounded-xl border border-indigo-200 bg-indigo-50 p-3">
+              <div className="flex items-center justify-between text-xs font-bold text-indigo-700 mb-2">
+                <span>배분 비율 조정</span>
+                <span>{splitValue} : {100 - splitValue}</span>
+              </div>
+              <input type="range" min={20} max={80} value={splitValue} onChange={(e) => setSplitValue(Number(e.target.value))}
+                className="w-full accent-indigo-600" />
+              <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                <span>우리 측 {splitValue}%</span>
+                <span>{100 - splitValue}% 파트너</span>
+              </div>
+              <div className="mt-1 rounded-lg bg-indigo-100 px-2 py-1.5 text-[11px] text-indigo-700">
+                변경 시 금액: 우리 <b>{formatAmount(Math.round(totalAmt * splitValue / 100))}</b> / 파트너 <b>{formatAmount(totalAmt - Math.round(totalAmt * splitValue / 100))}</b>
+              </div>
+              <div className="mt-2 flex gap-2">
+                <button onClick={() => setEditSplit(false)} className="flex-1 rounded-lg border border-slate-200 py-1.5 text-xs text-slate-600">취소</button>
+                <button onClick={() => {
+                  const newSplit = `${splitValue}:${100 - splitValue}`;
+                  onUpdate(item.id, { split: newSplit });
+                  showToast(`${item.id} 배분 비율 → ${newSplit} 조정 완료 (우리 ${formatAmount(Math.round(totalAmt * splitValue / 100))} / 파트너 ${formatAmount(totalAmt - Math.round(totalAmt * splitValue / 100))})`, 'indigo');
+                  setEditSplit(false);
+                }} className="flex-1 rounded-lg bg-indigo-600 py-1.5 text-xs font-bold text-white">적용</button>
+              </div>
+            </div>
+          )}
           <div className="flex gap-2">
+            {!isMarriage && (
             <button
               onClick={() => {
-                showToast(`${item.id} 배분 비율 ${item.split} → 조정 요청이 ${item.partner}에 전달되었습니다.`, 'indigo');
+                const current = parseInt(item.split?.split(':')[0]) || 50;
+                setSplitValue(current);
+                setEditSplit(true);
               }}
               className="flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
             >
               배분 조정
             </button>
+            )}
             <button
               onClick={() => {
-                showToast(`${item.partner}에 정산 증빙 서류 요청이 발송되었습니다.`, 'amber');
+                onAction('검수중');
+                showToast(`${item.partner}에 증빙 요청 → 상태가 "검수중"으로 변경되었습니다.`, 'amber');
               }}
               className="flex-1 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-sm font-medium text-amber-700 hover:bg-amber-100 transition"
             >
@@ -350,6 +413,7 @@ function SettlementDetailPanel({ item, onAction }) {
               정산 확정
             </button>
           </div>
+          </>
         )}
       </div>
     </aside>
@@ -360,16 +424,50 @@ function SettlementDetailPanel({ item, onAction }) {
    메인 페이지
    ═══════════════════════════════════════ */
 export default function SettlementPage() {
-  const { items, loading, fetchSettlements, updateStatus } = useSettlements();
+  const { items, loading, fetchSettlements, updateStatus, updateSettlement } = useSettlements();
+  const { items: disputes, createDispute } = useDisputes();
   const showToast = useAppStore((s) => s.showToast);
   const [selected, setSelected] = useState(null);
   const [activeFilter, setActiveFilter] = useState('전체');
   const [sortKey, setSortKey] = useState(null);
   const [sortAsc, setSortAsc] = useState(true);
+  const escalatedRef = React.useRef(new Set());
 
   useEffect(() => {
     fetchSettlements();
   }, [fetchSettlements]);
+
+  /* ── 정산 14일 초과 → 분쟁 자동 에스컬레이션 (Phase 1-5) ── */
+  useEffect(() => {
+    if (loading) return;
+    items.forEach((item) => {
+      if (item.status === '정산완료') return;
+      if (daysOverdue(item.due) < 14) return;
+      if (escalatedRef.current.has(item.id)) return;
+      const alreadyDisputed = disputes.some(
+        (d) => d.settlementId === item.id || d.issue?.includes(item.id),
+      );
+      if (alreadyDisputed) {
+        escalatedRef.current.add(item.id);
+        return;
+      }
+      escalatedRef.current.add(item.id);
+      const now = new Date();
+      createDispute({
+        partner: item.partner,
+        category: '정산분쟁',
+        issue: `정산 지연 14일 초과 (${item.id})`,
+        description: `${item.pair} 건의 정산 예정일(${item.due})이 14일 이상 경과했습니다. 금액: ${item.amount}, 배분: ${item.split}`,
+        priority: '높음',
+        owner: '운영관리자',
+        daysOpen: 0,
+        settlementId: item.id,
+        relatedMembers: item.pair ? item.pair.split(' ↔ ').map((s) => s.trim()) : [],
+        timeline: [{ date: `${now.getMonth() + 1}/${now.getDate()}`, action: '정산 지연 자동 에스컬레이션', by: '시스템' }],
+      });
+      showToast(`${item.id} 정산 14일 초과 — 분쟁이 자동 등록되었습니다.`, 'rose');
+    });
+  }, [items, loading]);
 
   /* auto-select removed — on mobile the list should stay visible */
 
@@ -434,8 +532,8 @@ export default function SettlementPage() {
     { key: 'partner', label: '파트너', width: '1fr' },
     { key: 'pair', label: '매칭 페어', width: '1fr' },
     { key: 'stage', label: '단계', width: '1fr' },
+    { key: 'type', label: '유형', width: '70px' },
     { key: 'amount', label: '금액', width: '80px' },
-    { key: 'split', label: '배분', width: '70px' },
     { key: 'due', label: '예정일', width: '90px' },
     { key: 'status', label: '상태', width: '90px' },
   ];
@@ -457,7 +555,7 @@ export default function SettlementPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-xl font-bold text-slate-900 md:text-2xl">정산관리</h2>
-              <p className="mt-1 hidden text-sm text-slate-500 sm:block">성사 단계별 정산 예정액, 배분 비율, 지급 상태를 추적합니다.</p>
+              <p className="mt-1 hidden text-sm text-slate-500 sm:block">매칭비·성혼비 정산 예정액과 지급 상태를 추적합니다.</p>
             </div>
             <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm md:px-4 md:py-2.5">
               <TrendingUp size={16} className="text-violet-500" />
@@ -574,8 +672,8 @@ export default function SettlementPage() {
                           <StatusChip label={row.status} />
                         </div>
                         <div className="mt-1 flex items-center gap-3 text-xs text-slate-500">
+                          <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${row.type === '성혼비' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>{row.type || '매칭비'}</span>
                           <span className={`font-bold ${row.status === '정산완료' ? 'text-emerald-700' : 'text-slate-900'}`}>{row.amount}</span>
-                          <span>{row.split}</span>
                           <span className={`${overdue ? 'text-rose-600 font-bold' : dueSoon ? 'text-amber-600' : ''}`}>
                             {overdue && '⚠ '}{row.due}
                           </span>
@@ -590,8 +688,8 @@ export default function SettlementPage() {
                         <div className="font-medium text-slate-800 truncate">{row.partner}</div>
                         <div className="text-slate-600 truncate">{row.pair}</div>
                         <div><StageIndicator stage={row.stage} /></div>
+                        <div><span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${row.type === '성혼비' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>{row.type || '매칭비'}</span></div>
                         <div className={`font-bold ${row.status === '정산완료' ? 'text-emerald-700' : 'text-slate-900'}`}>{row.amount}</div>
-                        <div className="text-slate-600">{row.split}</div>
                         <div className={`text-xs font-medium ${overdue ? 'text-rose-600 font-bold' : dueSoon ? 'text-amber-600' : 'text-slate-600'}`}>
                           {overdue && '⚠ '}{row.due}
                         </div>
@@ -627,8 +725,11 @@ export default function SettlementPage() {
           >
             <ChevronLeft size={18} /> 목록으로 돌아가기
           </button>
-          <div className="min-h-0 flex-1 overflow-hidden">
-            <SettlementDetailPanel item={selected} onAction={handleAction} />
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <SettlementDetailPanel item={selected} onAction={handleAction} onUpdate={(id, updates) => {
+              updateSettlement(id, updates);
+              setSelected((prev) => prev ? { ...prev, ...updates } : prev);
+            }} />
           </div>
         </div>
       )}

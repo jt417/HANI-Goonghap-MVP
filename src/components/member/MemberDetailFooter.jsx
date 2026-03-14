@@ -1,22 +1,17 @@
 import React, { useState } from 'react';
-import { ArrowRightLeft, Trash2 } from 'lucide-react';
+import { ArrowRightLeft, Trash2, AlertTriangle } from 'lucide-react';
 import { managerList } from '../../lib/constants';
 
 export default function MemberDetailFooter({ member, onTransfer, onDelete }) {
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferTarget, setTransferTarget] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
 
   const handleTransfer = () => {
-    if (transferTarget && window.confirm(`${member.name} 회원을 ${transferTarget}에게 이관하시겠습니까?`)) {
+    if (transferTarget) {
       onTransfer(transferTarget);
       setTransferTarget('');
       setShowTransfer(false);
-    }
-  };
-
-  const handleDelete = () => {
-    if (window.confirm(`${member.name} 회원을 정말 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
-      onDelete();
     }
   };
 
@@ -37,12 +32,19 @@ export default function MemberDetailFooter({ member, onTransfer, onDelete }) {
           <button onClick={handleTransfer} disabled={!transferTarget} className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800 disabled:opacity-40">이관</button>
           <button onClick={() => { setShowTransfer(false); setTransferTarget(''); }} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100">취소</button>
         </div>
+      ) : deleteConfirm ? (
+        <div className="flex items-center gap-2">
+          <AlertTriangle size={14} className="shrink-0 text-rose-500" />
+          <span className="flex-1 text-xs font-medium text-rose-700">{member.name} 회원을 삭제하시겠습니까?</span>
+          <button onClick={() => { onDelete(); setDeleteConfirm(false); }} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700">삭제</button>
+          <button onClick={() => setDeleteConfirm(false)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100">취소</button>
+        </div>
       ) : (
         <div className="flex items-center justify-between">
           <button onClick={() => setShowTransfer(true)} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700">
             <ArrowRightLeft size={12} /> 매니저 이관 ({member.manager})
           </button>
-          <button onClick={handleDelete} className="flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-600">
+          <button onClick={() => setDeleteConfirm(true)} className="flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-600">
             <Trash2 size={12} /> 회원 삭제
           </button>
         </div>

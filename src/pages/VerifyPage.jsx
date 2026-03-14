@@ -6,7 +6,22 @@ import {
 } from 'lucide-react';
 import useAppStore from '../stores/appStore';
 import { useVerifications } from '../hooks/useVerifications';
+import { useMembers } from '../hooks/useMembers';
 import StatusChip from '../components/common/StatusChip';
+
+/* 인증 레벨 자동 계산 (C-3) */
+const VERIFY_LEVEL_MAP = {
+  'Lv1': { min: 0, label: '기본' },        // 본인 확인만
+  'Lv2': { min: 1, label: '신원 인증' },    // 신원/재직 1건 이상
+  'Lv3': { min: 2, label: '소득 인증' },    // 소득/자산 포함 2건 이상
+  'Lv4': { min: 4, label: '완전 인증' },    // 4건 이상 승인
+};
+function calcVerifyLevel(approvedCount) {
+  if (approvedCount >= 4) return 'Lv4';
+  if (approvedCount >= 2) return 'Lv3';
+  if (approvedCount >= 1) return 'Lv2';
+  return 'Lv1';
+}
 
 const VERIFY_TYPE_META = {
   '자산 인증': { icon: Wallet, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-200' },
@@ -43,24 +58,25 @@ function getDueUrgency(due) {
 }
 
 export default function VerifyPage() {
-  const { items, loading, fetchVerifications, updateStatus } = useVerifications();
+  const { items, loading, fetchVerifications, updateStatus, updateVerification } = useVerifications();
+  const { members, updateMember } = useMembers();
   const showToast = useAppStore((s) => s.showToast);
   const [selected, setSelected] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [memoText, setMemoText] = useState('');
-  const [memos, setMemos] = useState({});
+  const [memoHistory, setMemoHistory] = useState({});
+  const [newDocName, setNewDocName] = useState('');
 
   useEffect(() => {
     fetchVerifications();
   }, [fetchVerifications]);
 
-  useEffect(() => {
-    if (!selected && items.length > 0) setSelected(items[0]);
-  }, [items]);
+  /* auto-select removed — on mobile the list should stay visible */
 
   useEffect(() => {
     if (selected) {
-      setMemoText(memos[selected.id] || selected.memo || '');
+      setMemoText('');
+      setNewDocName('');
     }
   }, [selected?.id]);
 
@@ -84,6 +100,20 @@ export default function VerifyPage() {
     const { error } = await updateStatus(selected.id, newStatus);
     if (!error) {
       setSelected((prev) => (prev ? { ...prev, status: newStatus } : prev));
+
+      // A-5 + C-3: 승인 시 회원 verifyLevel 자동 업데이트
+      if (newStatus === '승인' && selected.memberId) {
+        const approvedCount = items.filter(
+          (v) => v.memberId === selected.memberId && (v.status === '승인' || v.id === selected.id)
+        ).length;
+        const newLevel = calcVerifyLevel(approvedCount);
+        const member = members.find((m) => m.id === selected.memberId);
+        if (member && member.verifyLevel !== newLevel) {
+          const verifyItems = [...new Set([...(member.verifyItems || []), selected.type])];
+          updateMember(member.id, { verifyLevel: newLevel, verifyItems });
+        }
+      }
+
       const label = newStatus === '승인' ? '승인 처리' : newStatus === '서류보완 요청' ? '보완 요청' : '반려 처리';
       const tone = newStatus === '승인' ? 'emerald' : 'amber';
       showToast(`${selected.memberName || selected.memberId} ${selected.type} ${label}되었습니다.`, tone, () => {
@@ -94,9 +124,33 @@ export default function VerifyPage() {
   };
 
   const handleSaveMemo = () => {
-    if (!selected) return;
-    setMemos((prev) => ({ ...prev, [selected.id]: memoText }));
-    showToast(`${selected.memberName || selected.memberId} 검토 메모가 저장되었습니다.`, 'emerald');
+    if (!selected || !memoText.trim()) return;
+    const entry = { text: memoText.trim(), date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) };
+    setMemoHistory((prev) => ({
+      ...prev,
+      [selected.id]: [entry, ...(prev[selected.id] || [])],
+    }));
+    updateVerification(selected.id, { memo: memoText.trim() });
+    setMemoText('');
+    showToast('검토 메모가 저장되었습니다.', 'emerald');
+  };
+
+  const toggleDocStatus = (docName) => {
+    const currentStatuses = selected.docStatuses || {};
+    const current = currentStatuses[docName] || '미확인';
+    const next = current === '확인됨' ? '보완필요' : current === '보완필요' ? '미확인' : '확인됨';
+    const updatedStatuses = { ...currentStatuses, [docName]: next };
+    updateVerification(selected.id, { docStatuses: updatedStatuses });
+    setSelected((prev) => prev ? { ...prev, docStatuses: updatedStatuses } : prev);
+  };
+
+  const handleAddDoc = () => {
+    if (!selected || !newDocName.trim()) return;
+    const updatedDocs = [...(selected.docs || []), newDocName.trim()];
+    updateVerification(selected.id, { docs: updatedDocs });
+    setSelected((prev) => prev ? { ...prev, docs: updatedDocs } : prev);
+    setNewDocName('');
+    showToast('서류가 추가되었습니다.', 'emerald');
   };
 
   const typeMeta = selected ? (VERIFY_TYPE_META[selected.type] || VERIFY_TYPE_META['신원 인증']) : null;
@@ -315,14 +369,37 @@ export default function VerifyPage() {
                 {(selected.docs || []).length === 0 ? (
                   <div className="text-sm text-slate-400">제출된 서류가 없습니다.</div>
                 ) : (
-                  selected.docs.map((doc, idx) => (
-                    <div key={idx} className="flex items-center gap-2.5 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5">
-                      <FileText size={14} className="shrink-0 text-slate-400" />
-                      <span className="text-sm text-slate-700">{doc}</span>
-                      <ChevronRight size={14} className="ml-auto text-slate-300" />
-                    </div>
-                  ))
+                  selected.docs.map((doc, idx) => {
+                    const docStatus = (selected.docStatuses || {})[doc] || '미확인';
+                    const statusStyle = docStatus === '확인됨' ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : docStatus === '보완필요' ? 'bg-amber-100 text-amber-700 border-amber-200' : 'bg-slate-100 text-slate-500 border-slate-200';
+                    return (
+                      <div key={idx} className="flex items-center gap-2.5 rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5">
+                        <FileText size={14} className="shrink-0 text-slate-400" />
+                        <span className="flex-1 text-sm text-slate-700 truncate">{doc}</span>
+                        <button
+                          onClick={() => toggleDocStatus(doc)}
+                          className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold transition ${statusStyle}`}
+                        >
+                          {docStatus}
+                        </button>
+                      </div>
+                    );
+                  })
                 )}
+                {/* Add document */}
+                <div className="flex gap-2 mt-2">
+                  <input
+                    type="text"
+                    value={newDocName}
+                    onChange={(e) => setNewDocName(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddDoc()}
+                    placeholder="서류명 입력 (예: 재직증명서.pdf)"
+                    className="flex-1 rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs outline-none focus:border-indigo-400"
+                  />
+                  <button onClick={handleAddDoc} disabled={!newDocName.trim()} className="rounded-lg bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-40">
+                    <FilePlus size={13} />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -334,17 +411,33 @@ export default function VerifyPage() {
               </div>
               <textarea
                 className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 outline-none focus:border-indigo-300 focus:ring-1 focus:ring-indigo-200 resize-none"
-                rows={3}
+                rows={2}
                 placeholder="검토 내용을 입력하세요 (보완요청 시 회원에게 전달됩니다)"
                 value={memoText}
                 onChange={(e) => setMemoText(e.target.value)}
               />
               <button
                 onClick={handleSaveMemo}
-                className="mt-2 w-full rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-200 transition"
+                disabled={!memoText.trim()}
+                className="mt-2 w-full rounded-lg bg-slate-100 px-3 py-2 text-xs font-medium text-slate-600 hover:bg-slate-200 disabled:opacity-40 transition"
               >
                 메모 저장
               </button>
+              {/* Memo History */}
+              {(memoHistory[selected.id] || []).length > 0 && (
+                <div className="mt-3 space-y-2 border-t border-slate-100 pt-3">
+                  <div className="text-[10px] font-bold text-slate-400">메모 이력</div>
+                  {(memoHistory[selected.id] || []).map((m, i) => (
+                    <div key={i} className="rounded-lg bg-slate-50 px-3 py-2">
+                      <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                        <span>{m.date}</span>
+                        <span>{m.time}</span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-slate-700">{m.text}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}

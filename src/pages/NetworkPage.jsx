@@ -10,12 +10,12 @@ import NetworkResultCard from '../components/member/NetworkResultCard';
 import SajuCompatModal from '../components/saju/SajuCompatModal';
 import CompatDashboard from '../components/saju/CompatDashboard';
 import { ELEMENT_HANJA, STEM_ELEMENT, calculateCompatibility } from '../lib/saju';
-import { networkMembers } from '../lib/seedData';
 import { locationHierarchy } from '../lib/constants';
 import { computeMatchGap, sortByGapAsc } from '../lib/matching';
 import { calcMatchScores } from '../lib/matchingScore';
 import { useMessages } from '../hooks/useMessages';
 import { useMembers } from '../hooks/useMembers';
+import useAppStore from '../stores/appStore';
 
 /* ── helpers ── */
 function parseActivityMinutes(text) {
@@ -63,9 +63,9 @@ function ComparisonTable({ compareList, onRemove, myScore }) {
 
   const rows = [
     { label: '총합', get: (m) => m.matchScore },
-    { label: '조건', get: (m) => m.scores.condition },
-    { label: '가치관', get: (m) => m.scores.values },
-    { label: '궁합', get: (m) => m.scores.saju },
+    { label: '조건', get: (m) => m.scores?.condition ?? 0 },
+    { label: '가치관', get: (m) => m.scores?.values ?? 0 },
+    { label: '궁합', get: (m) => m.scores?.saju ?? 0 },
   ];
 
   return (
@@ -154,6 +154,7 @@ export default function NetworkPage({ selectedMyMember, compareList, setCompareL
   const [tagsExpanded, setTagsExpanded] = useState(false);
   const [detailTab, setDetailTab] = useState('profile'); // 'profile' | 'compat'
 
+  const networkPool = useAppStore((s) => s.networkPool);
   const { messages, sendMessage } = useMessages(selectedNetworkMember?.id);
   const { members: internalMembers } = useMembers();
 
@@ -163,60 +164,60 @@ export default function NetworkPage({ selectedMyMember, compareList, setCompareL
   /* unique filter options */
   const filterOptions = useMemo(() => {
     const ageOrder = ['20대 후반', '30대 초반', '30대 중반', '30대 후반', '40대 초반'];
-    const ages = [...new Set(networkMembers.map((m) => m.ageRange))].sort(
+    const ages = [...new Set(networkPool.map((m) => m.ageRange))].sort(
       (a, b) => ageOrder.indexOf(a) - ageOrder.indexOf(b),
     );
     /* 시/도별 회원 수 집계 */
     const cityCount = {};
-    networkMembers.forEach((m) => {
+    networkPool.forEach((m) => {
       const city = m.location.split(' ')[0];
       cityCount[city] = (cityCount[city] || 0) + 1;
     });
     const cities = Object.entries(cityCount).sort((a, b) => b[1] - a[1]).map(([c]) => c);
 
     /* 선택된 시/도 내 구/군 목록 (동적) */
-    const locations = [...new Set(networkMembers.map((m) => m.location))].sort();
-    const jobs = [...new Set(networkMembers.map((m) => m.jobCategory))].sort();
+    const locations = [...new Set(networkPool.map((m) => m.location))].sort();
+    const jobs = [...new Set(networkPool.map((m) => m.jobCategory))].sort();
 
     /* popular tags sorted by frequency */
     const tagCount = {};
-    networkMembers.forEach((m) => m.tags?.forEach((t) => { tagCount[t] = (tagCount[t] || 0) + 1; }));
+    networkPool.forEach((m) => m.tags?.forEach((t) => { tagCount[t] = (tagCount[t] || 0) + 1; }));
     const tags = Object.entries(tagCount)
       .sort((a, b) => b[1] - a[1])
       .map(([tag]) => tag);
 
     /* 학력 */
     const eduOrder = ['SKY', '명문대/의대', '해외대 학사', '상위권 대학원'];
-    const edus = [...new Set(networkMembers.map((m) => m.eduRange))].sort(
+    const edus = [...new Set(networkPool.map((m) => m.eduRange))].sort(
       (a, b) => eduOrder.indexOf(a) - eduOrder.indexOf(b),
     );
     /* 연소득 */
     const incomeOrder = ['5,000만~7,000만', '7,000만~1억', '1억 이상', '1.5억 이상', '2억 이상'];
-    const incomes = [...new Set(networkMembers.map((m) => m.incomeRange))].sort(
+    const incomes = [...new Set(networkPool.map((m) => m.incomeRange))].sort(
       (a, b) => incomeOrder.indexOf(a) - incomeOrder.indexOf(b),
     );
     /* 체형 */
-    const bodyTypes = [...new Set(networkMembers.map((m) => m.bodyType))].sort();
+    const bodyTypes = [...new Set(networkPool.map((m) => m.bodyType))].sort();
     /* 자산 */
     const assetsOrder = ['1~2억', '2~5억', '3~5억', '5억 이상', '5~10억', '10억 이상'];
-    const assets = [...new Set(networkMembers.map((m) => m.assetsRange))].sort(
+    const assets = [...new Set(networkPool.map((m) => m.assetsRange))].sort(
       (a, b) => assetsOrder.indexOf(a) - assetsOrder.indexOf(b),
     );
 
     return { ages, cities, locations, jobs, tags, edus, incomes, bodyTypes, assets };
-  }, []);
+  }, [networkPool]);
 
   /* 선택된 회원의 반대 성별 자동 필터 */
   const oppositeGender = selectedMyMember?.gender === 'M' ? 'F' : selectedMyMember?.gender === 'F' ? 'M' : null;
 
   /* 동적 점수 계산 — selectedMyMember 기준으로 모든 네트워크 회원 점수를 재계산 */
   const scoredNetworkMembers = useMemo(() => {
-    if (!selectedMyMember) return networkMembers;
-    return networkMembers.map((m) => {
+    if (!selectedMyMember) return networkPool;
+    return networkPool.map((m) => {
       const computed = calcMatchScores(selectedMyMember, m);
       return { ...m, scores: { condition: computed.condition, values: computed.values, saju: computed.saju }, matchScore: computed.matchScore };
     });
-  }, [selectedMyMember]);
+  }, [selectedMyMember, networkPool]);
 
   /* filter + sort */
   const filtered = useMemo(() => {
@@ -332,7 +333,7 @@ export default function NetworkPage({ selectedMyMember, compareList, setCompareL
   };
 
   return (
-    <div className={`grid h-full grid-cols-1 ${selectedNetworkMember ? 'lg:grid-cols-[280px_1fr_360px]' : 'lg:grid-cols-[280px_1fr]'}`}>
+    <div className={`grid h-full grid-rows-1 overflow-hidden grid-cols-1 ${selectedNetworkMember ? 'lg:grid-cols-[280px_1fr_360px]' : 'lg:grid-cols-[280px_1fr]'}`}>
       {/* ═══ LEFT SIDEBAR (hidden on mobile, toggle via filter button) ═══ */}
       {showMobileFilters && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setShowMobileFilters(false)} />}
       <aside className={`fixed inset-y-0 left-0 z-50 w-72 transform transition-transform duration-300 lg:relative lg:w-auto lg:translate-x-0 ${showMobileFilters ? 'translate-x-0' : '-translate-x-full'} flex flex-col border-r border-slate-200 bg-white overflow-hidden`}>
@@ -724,7 +725,7 @@ export default function NetworkPage({ selectedMyMember, compareList, setCompareL
 
       {/* ═══ RIGHT DETAIL ═══ */}
       {selectedNetworkMember && (
-      <div className="fixed inset-0 z-30 flex flex-col bg-white lg:relative lg:inset-auto lg:z-auto">
+      <div className="fixed inset-0 z-30 flex min-h-0 flex-col bg-white lg:relative lg:inset-auto lg:z-auto">
         <button
           onClick={() => setSelectedNetworkMember(null)}
           className="flex items-center gap-2 border-b border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 lg:hidden"
@@ -920,7 +921,7 @@ export default function NetworkPage({ selectedMyMember, compareList, setCompareL
                 ))}
                 {/* tags */}
                 <div className="border-t border-slate-100 px-3 py-2.5 flex flex-wrap gap-1.5">
-                  {current.tags.map((tag) => (
+                  {(current.tags || []).map((tag) => (
                     <span key={tag} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] text-slate-600">{tag}</span>
                   ))}
                 </div>
@@ -968,7 +969,7 @@ export default function NetworkPage({ selectedMyMember, compareList, setCompareL
                 <div className="mt-3">
                   <div className="text-xs font-bold text-violet-700">주의 포인트</div>
                   <ul className="mt-1.5 space-y-1">
-                    {current.risks.map((r) => (<li key={r} className="text-xs text-violet-800 leading-5">• {r}</li>))}
+                    {(current.risks || []).map((r) => (<li key={r} className="text-xs text-violet-800 leading-5">• {r}</li>))}
                   </ul>
                 </div>
               </div>

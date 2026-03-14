@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   BarChart3, Clock3, TrendingUp, UserPlus, Network, CalendarDays,
   ShieldCheck, ArrowRight, AlertCircle, CheckCircle2, MapPin, Clock,
-  Inbox, Send, Users, CalendarCheck,
+  Inbox, Send, Users, CalendarCheck, Settings, X, Plus, Trash2, Target,
 } from 'lucide-react';
 import SectionCard from '../components/common/SectionCard';
 import StatusChip from '../components/common/StatusChip';
@@ -11,7 +11,10 @@ import useAppStore from '../stores/appStore';
 import { useReminders } from '../hooks/useReminders';
 import { useMembers } from '../hooks/useMembers';
 import { useProposals } from '../hooks/useProposals';
-import { reputationMetrics, kpiSeries } from '../lib/seedData';
+import { useSettlements } from '../hooks/useSettlements';
+import { useDisputes } from '../hooks/useDisputes';
+import { useActivityLog } from '../hooks/useActivityLog';
+/* kpiSeries now comes from store */
 
 const TODAY_STR = '2026-03-14';
 const TODAY_LABEL = '2026년 3월 14일 금요일';
@@ -20,39 +23,71 @@ const FUNNEL_COLORS = {
   '신규 상담': 'bg-blue-500',
   '소개 가능': 'bg-emerald-500',
   '소개 진행중': 'bg-violet-500',
+  '매칭중': 'bg-pink-500',
+  '성혼': 'bg-rose-500',
   '보류': 'bg-amber-500',
   '휴면': 'bg-slate-300',
+  '탈퇴': 'bg-slate-400',
 };
 
 const FUNNEL_BG = {
   '신규 상담': 'bg-blue-50 text-blue-700',
   '소개 가능': 'bg-emerald-50 text-emerald-700',
   '소개 진행중': 'bg-violet-50 text-violet-700',
+  '매칭중': 'bg-pink-50 text-pink-700',
+  '성혼': 'bg-rose-50 text-rose-700',
   '보류': 'bg-amber-50 text-amber-700',
   '휴면': 'bg-slate-100 text-slate-500',
+  '탈퇴': 'bg-slate-100 text-slate-400',
 };
 
-/* ── Mini Bar Chart (kept from original) ── */
-function MiniBarChart() {
-  const max = Math.max(...kpiSeries.flatMap((d) => [d.match, d.intro, d.close]));
+/* ── Mini Bar Chart with targets ── */
+function MiniBarChart({ kpiWeekly, kpiTargets }) {
+  const allVals = kpiWeekly.flatMap((d) => [d.match, d.intro, d.close]);
+  const max = Math.max(...allVals, kpiTargets.match, kpiTargets.intro, kpiTargets.close, 1);
+
+  const bars = [
+    { key: 'match', label: '탐색', tone: 'bg-slate-700', target: kpiTargets.match },
+    { key: 'intro', label: '소개', tone: 'bg-violet-500', target: kpiTargets.intro },
+    { key: 'close', label: '성혼', tone: 'bg-emerald-500', target: kpiTargets.close },
+  ];
+
   return (
     <div className="space-y-4">
-      {kpiSeries.map((item) => (
+      {/* 목표 라인 범례 */}
+      <div className="flex items-center gap-3 text-[10px] text-slate-400">
+        <span className="flex items-center gap-1"><Target size={10} className="text-rose-400" /> 주간 목표:</span>
+        {bars.map((b) => (
+          <span key={b.key} className="font-bold text-slate-500">{b.label} {b.target}</span>
+        ))}
+      </div>
+      {kpiWeekly.map((item) => (
         <div key={item.label} className="grid grid-cols-[60px_1fr] items-center gap-4">
           <div className="text-xs font-medium text-slate-500">{item.label}</div>
           <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: '탐색', value: item.match, tone: 'bg-slate-700' },
-              { label: '소개', value: item.intro, tone: 'bg-violet-500' },
-              { label: '성사', value: item.close, tone: 'bg-emerald-500' },
-            ].map((bar) => (
-              <div key={bar.label}>
-                <div className="mb-1 flex items-center justify-between text-[11px] text-slate-500"><span>{bar.label}</span><span>{bar.value}</span></div>
-                <div className="h-2 rounded-full bg-slate-100">
-                  <div className={`h-2 rounded-full ${bar.tone}`} style={{ width: `${(bar.value / max) * 100}%` }} />
+            {bars.map((bar) => {
+              const val = item[bar.key];
+              const pct = (val / max) * 100;
+              const targetPct = (bar.target / max) * 100;
+              const overTarget = val >= bar.target;
+              return (
+                <div key={bar.key}>
+                  <div className="mb-1 flex items-center justify-between text-[11px] text-slate-500">
+                    <span>{bar.label}</span>
+                    <span className={overTarget ? 'font-bold text-emerald-600' : ''}>{val}</span>
+                  </div>
+                  <div className="relative h-2 rounded-full bg-slate-100">
+                    <div className={`h-2 rounded-full ${bar.tone}`} style={{ width: `${pct}%` }} />
+                    {/* 목표 마커 */}
+                    <div
+                      className="absolute top-0 h-2 w-0.5 bg-rose-400"
+                      style={{ left: `${Math.min(targetPct, 100)}%` }}
+                      title={`목표: ${bar.target}`}
+                    />
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}
@@ -379,6 +414,158 @@ function RecentActivityPanel({ items }) {
   );
 }
 
+/* ── KPI Settings Modal ── */
+function KpiSettingsModal({ open, onClose, kpiTargets, kpiWeekly, setKpiTargets, setKpiWeekly }) {
+  const [targets, setTargets] = useState({ ...kpiTargets });
+  const [weekly, setWeekly] = useState([...kpiWeekly.map((w) => ({ ...w }))]);
+
+  if (!open) return null;
+
+  const handleSave = () => {
+    setKpiTargets(targets);
+    setKpiWeekly(weekly);
+    onClose();
+  };
+
+  const updateWeek = (idx, key, val) => {
+    const num = parseInt(val, 10);
+    setWeekly((prev) => prev.map((w, i) => i === idx ? { ...w, [key]: isNaN(num) ? 0 : num } : w));
+  };
+
+  const addWeek = () => {
+    setWeekly((prev) => [...prev, { label: `${prev.length + 1}주차`, match: 0, intro: 0, close: 0 }]);
+  };
+
+  const removeWeek = (idx) => {
+    setWeekly((prev) => prev.filter((_, i) => i !== idx).map((w, i) => ({ ...w, label: `${i + 1}주차` })));
+  };
+
+  // 달성률 계산
+  const totals = weekly.reduce((acc, w) => ({
+    match: acc.match + w.match,
+    intro: acc.intro + w.intro,
+    close: acc.close + w.close,
+  }), { match: 0, intro: 0, close: 0 });
+  const monthTarget = { match: targets.match * weekly.length, intro: targets.intro * weekly.length, close: targets.close * weekly.length };
+  const pct = (actual, target) => target > 0 ? Math.round((actual / target) * 100) : 0;
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
+          <div>
+            <h3 className="text-base font-bold text-slate-900">KPI 목표 설정</h3>
+            <p className="text-xs text-slate-500">주간 목표와 실적을 입력하세요</p>
+          </div>
+          <button onClick={onClose} className="rounded-lg p-1.5 hover:bg-slate-100"><X size={18} className="text-slate-400" /></button>
+        </div>
+
+        <div className="max-h-[60vh] overflow-y-auto px-6 py-5 space-y-5">
+          {/* 주간 목표 */}
+          <div>
+            <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-800">
+              <Target size={15} className="text-rose-500" /> 주간 목표 (건)
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { key: 'match', label: '탐색', color: 'border-slate-300' },
+                { key: 'intro', label: '소개', color: 'border-violet-300' },
+                { key: 'close', label: '성혼', color: 'border-emerald-300' },
+              ].map(({ key, label, color }) => (
+                <div key={key}>
+                  <label className="mb-1 block text-[11px] font-medium text-slate-500">{label}</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={targets[key]}
+                    onChange={(e) => setTargets((p) => ({ ...p, [key]: parseInt(e.target.value, 10) || 0 }))}
+                    className={`w-full rounded-xl border ${color} px-3 py-2.5 text-center text-lg font-bold text-slate-800 outline-none focus:ring-2 focus:ring-violet-100`}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 주간 실적 입력 */}
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                <BarChart3 size={15} className="text-violet-500" /> 주간 실적
+              </div>
+              <button onClick={addWeek} className="flex items-center gap-1 rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-bold text-slate-600 hover:bg-slate-200">
+                <Plus size={12} /> 주차 추가
+              </button>
+            </div>
+
+            {/* 헤더 */}
+            <div className="mb-1.5 grid grid-cols-[60px_1fr_1fr_1fr_28px] gap-2 text-[10px] font-bold text-slate-400">
+              <div />
+              <div className="text-center">탐색</div>
+              <div className="text-center">소개</div>
+              <div className="text-center">성혼</div>
+              <div />
+            </div>
+
+            <div className="space-y-1.5">
+              {weekly.map((week, idx) => (
+                <div key={idx} className="grid grid-cols-[60px_1fr_1fr_1fr_28px] items-center gap-2">
+                  <div className="text-xs font-medium text-slate-500">{week.label}</div>
+                  {['match', 'intro', 'close'].map((key) => (
+                    <input
+                      key={key}
+                      type="number"
+                      min={0}
+                      value={week[key]}
+                      onChange={(e) => updateWeek(idx, key, e.target.value)}
+                      className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-center text-sm font-medium text-slate-800 outline-none focus:border-violet-400"
+                    />
+                  ))}
+                  <button
+                    onClick={() => removeWeek(idx)}
+                    disabled={weekly.length <= 1}
+                    className="rounded p-1 text-slate-300 hover:text-rose-500 disabled:opacity-30"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 달성률 요약 */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <div className="mb-2 text-xs font-bold text-slate-600">월간 달성률 ({weekly.length}주 기준)</div>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { key: 'match', label: '탐색', tone: 'slate' },
+                { key: 'intro', label: '소개', tone: 'violet' },
+                { key: 'close', label: '성혼', tone: 'emerald' },
+              ].map(({ key, label, tone }) => {
+                const p = pct(totals[key], monthTarget[key]);
+                const color = p >= 100 ? 'text-emerald-600' : p >= 70 ? 'text-amber-600' : 'text-rose-600';
+                return (
+                  <div key={key} className="text-center">
+                    <div className="text-[10px] text-slate-400">{label}</div>
+                    <div className={`text-xl font-black ${color}`}>{p}%</div>
+                    <div className="text-[10px] text-slate-500">{totals[key]} / {monthTarget[key]}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-2 border-t border-slate-100 px-6 py-4">
+          <button onClick={onClose} className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50">취소</button>
+          <button onClick={handleSave} className="flex-1 rounded-xl bg-violet-600 py-2.5 text-sm font-bold text-white hover:bg-violet-700">저장</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ══════════════════════════════════════════════════════════════════
    MAIN DASHBOARD
    ══════════════════════════════════════════════════════════════════ */
@@ -386,13 +573,22 @@ export default function DashboardPage({ onOpenRegistration }) {
   const profile = useAppStore((s) => s.profile);
   const setActiveTab = useAppStore((s) => s.setActiveTab);
   const setSelectedMyMember = useAppStore((s) => s.setSelectedMyMember);
+  const kpiTargets = useAppStore((s) => s.kpiTargets);
+  const kpiWeekly = useAppStore((s) => s.kpiWeekly);
+  const setKpiTargets = useAppStore((s) => s.setKpiTargets);
+  const setKpiWeekly = useAppStore((s) => s.setKpiWeekly);
+  const [kpiSettingsOpen, setKpiSettingsOpen] = useState(false);
   const { myReminders } = useReminders();
   const { members } = useMembers();
   const { inbox, outbox } = useProposals();
+  const { items: settlements } = useSettlements();
+  const { items: disputes } = useDisputes();
+  const { logs: activityLogs } = useActivityLog();
 
   /* ── Computed data ── */
   const statusCounts = useMemo(() => {
-    const counts = { '신규 상담': 0, '소개 가능': 0, '소개 진행중': 0, '보류': 0, '휴면': 0 };
+    const counts = {};
+    memberStatusOptions.forEach((s) => { counts[s] = 0; });
     members.forEach((m) => { if (counts[m.status] !== undefined) counts[m.status]++; });
     return counts;
   }, [members]);
@@ -419,14 +615,24 @@ export default function DashboardPage({ onOpenRegistration }) {
 
   const recentActivity = useMemo(() => {
     const items = [];
-    inbox.slice(0, 3).forEach((p) => {
-      items.push({ time: p.lastAction, title: `${p.agency}에서 제안 수신`, desc: `${p.memberId} 대상 · 점수 ${p.score} · ${p.status}` });
-    });
-    outbox.filter((p) => p.status === '수락' || p.status === '소개 확정').slice(0, 2).forEach((p) => {
-      items.push({ time: p.lastAction, title: `${p.agency} 제안 ${p.status}`, desc: `${p.memberId} → ${p.candidate}` });
-    });
+    // Show audit logs if available
+    if (activityLogs.length > 0) {
+      activityLogs.slice(0, 6).forEach((log) => {
+        const dt = new Date(log.created_at);
+        const time = `${dt.getHours()}:${String(dt.getMinutes()).padStart(2, '0')}`;
+        items.push({ time, title: log.action, desc: log.detail || log.target_id || '' });
+      });
+    } else {
+      // Fallback to proposal-based activity
+      inbox.slice(0, 3).forEach((p) => {
+        items.push({ time: p.lastAction, title: `${p.agency}에서 제안 수신`, desc: `${p.memberId} 대상 · 점수 ${p.score} · ${p.status}` });
+      });
+      outbox.filter((p) => p.status === '수락' || p.status === '소개 확정').slice(0, 2).forEach((p) => {
+        items.push({ time: p.lastAction, title: `${p.agency} 제안 ${p.status}`, desc: `${p.memberId} → ${p.candidate}` });
+      });
+    }
     return items.slice(0, 6);
-  }, [inbox, outbox]);
+  }, [inbox, outbox, activityLogs]);
 
   /* ── Navigation helpers ── */
   const navigateToMember = (member) => {
@@ -440,12 +646,12 @@ export default function DashboardPage({ onOpenRegistration }) {
     { label: '소개 가능', value: `${statusCounts['소개 가능']}명`, tone: 'emerald', onClick: () => setActiveTab('myMembers') },
     { label: '받은 제안', value: `${inbox.length}건`, tone: 'indigo', onClick: () => setActiveTab('inbox'), sub: actionableInbox.length > 0 ? `${actionableInbox.length}건 검토 필요` : null },
     { label: '보낸 제안', value: `${outbox.length}건`, tone: 'amber', onClick: () => setActiveTab('outbox'), sub: pendingOutbox.length > 0 ? `${pendingOutbox.length}건 응답 대기` : null },
-    { label: '소개 진행중', value: `${statusCounts['소개 진행중']}명`, tone: 'rose', onClick: () => setActiveTab('myMembers') },
-    { label: '리마인더', value: `${myReminders.length}건`, tone: myReminders.length > 0 ? 'rose' : 'slate', onClick: () => setActiveTab('myMembers'), sub: myReminders.length > 0 ? '컨택 필요' : null },
+    { label: '매칭 진행', value: `${(statusCounts['소개 진행중'] || 0) + (statusCounts['매칭중'] || 0)}명`, tone: 'rose', onClick: () => setActiveTab('myMembers') },
+    { label: '정산/분쟁', value: `${settlements.filter((s) => s.status !== '정산완료').length}/${disputes.filter((d) => d.level !== '해결').length}`, tone: disputes.filter((d) => d.level !== '해결').length > 0 ? 'rose' : 'slate', onClick: () => setActiveTab('settlement'), sub: disputes.filter((d) => d.level !== '해결').length > 0 ? '분쟁 확인 필요' : null },
   ];
 
   return (
-    <div className="space-y-5 overflow-y-auto p-4 md:space-y-6 md:p-6 lg:p-8">
+    <div className="h-full space-y-5 overflow-y-auto p-4 md:space-y-6 md:p-6 lg:p-8">
       {/* ROW 1: Morning Brief */}
       <MorningBriefHeader profile={profile} totalActions={totalActions} memberCount={members.length} />
 
@@ -510,12 +716,25 @@ export default function DashboardPage({ onOpenRegistration }) {
 
       {/* ROW 5: Pipeline + Reputation + Activity */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <SectionCard title="주간 파이프라인 흐름" subtitle="탐색 → 소개 → 성사 전환 추이" action={<div className="flex items-center gap-2 text-sm font-medium text-violet-600"><BarChart3 size={16} /> KPI</div>}>
-          <MiniBarChart />
+        <SectionCard
+          title="주간 파이프라인 흐름"
+          subtitle="탐색 → 소개 → 성혼 전환 추이"
+          action={
+            <button onClick={() => setKpiSettingsOpen(true)} className="flex items-center gap-1.5 rounded-lg bg-violet-50 px-2.5 py-1 text-xs font-bold text-violet-600 hover:bg-violet-100 transition">
+              <Settings size={13} /> KPI 설정
+            </button>
+          }
+        >
+          <MiniBarChart kpiWeekly={kpiWeekly} kpiTargets={kpiTargets} />
         </SectionCard>
-        <SectionCard title="업체 평판 / 협업 지표" subtitle="네트워크 내 운영 품질 지표" action={<div className="flex items-center gap-2 text-sm font-medium text-emerald-600"><TrendingUp size={16} /> 개선중</div>}>
+        <SectionCard title="운영 지표" subtitle="실시간 정산/분쟁/성혼 현황" action={<div className="flex items-center gap-2 text-sm font-medium text-emerald-600"><TrendingUp size={16} /> Live</div>}>
           <div className="space-y-3">
-            {reputationMetrics.map((item) => (
+            {[
+              { label: '정산 완료율', value: `${settlements.length > 0 ? Math.round((settlements.filter((s) => s.status === '정산완료').length / settlements.length) * 100) : 0}%`, sub: `${settlements.filter((s) => s.status === '정산완료').length}/${settlements.length}건 완료` },
+              { label: '활성 분쟁', value: `${disputes.filter((d) => d.level !== '해결').length}건`, sub: disputes.filter((d) => d.level !== '해결').length > 0 ? '즉시 확인 필요' : '분쟁 없음' },
+              { label: '제안 수락률', value: `${inbox.length > 0 ? Math.round((inbox.filter((p) => ['수락', '소개 확정'].includes(p.status)).length / inbox.length) * 100) : 0}%`, sub: `받은 ${inbox.length}건 중 수락/확정 ${inbox.filter((p) => ['수락', '소개 확정'].includes(p.status)).length}건` },
+              { label: '성혼 파이프라인', value: `${members.filter((m) => m.matchOutcome).length}명`, sub: `교제 ${members.filter((m) => m.matchOutcome?.stage === '교제중').length} · 성혼 ${members.filter((m) => m.matchOutcome?.stage === '성사 확정').length} · 정산 ${members.filter((m) => m.matchOutcome?.stage === '성혼 정산').length}` },
+            ].map((item) => (
               <div key={item.label} className="rounded-xl border border-slate-200 p-4">
                 <div className="text-xs text-slate-400">{item.label}</div>
                 <div className="mt-1 text-lg font-bold text-slate-900">{item.value}</div>
@@ -528,6 +747,16 @@ export default function DashboardPage({ onOpenRegistration }) {
           <RecentActivityPanel items={recentActivity} />
         </SectionCard>
       </div>
+
+      {/* KPI Settings Modal */}
+      <KpiSettingsModal
+        open={kpiSettingsOpen}
+        onClose={() => setKpiSettingsOpen(false)}
+        kpiTargets={kpiTargets}
+        kpiWeekly={kpiWeekly}
+        setKpiTargets={setKpiTargets}
+        setKpiWeekly={setKpiWeekly}
+      />
     </div>
   );
 }

@@ -130,7 +130,12 @@ export default function NetworkResultCard({ member, selected, onSelect, onToggle
             <Badge level={member.verifyLevel} />
           </div>
           <div className="mt-1.5 text-xs font-bold text-slate-800">{member.id}</div>
-          <div className="text-[10px] text-slate-400">{member.agency}</div>
+          <div className="text-[10px] text-slate-400">
+            {member.agency}
+            {member.source === 'self' && (
+              <span className="ml-1 inline-block rounded bg-teal-100 px-1 py-px text-[8px] font-bold text-teal-700">개인등록</span>
+            )}
+          </div>
           <div className={`mt-1 text-3xl font-black leading-none ${scoreColor(candidateScore)}`}>{candidateScore}</div>
           {member.rankingBadges?.[0] && (
             <span className="mt-1 inline-block rounded-full bg-violet-100/80 px-2 py-0.5 text-[9px] font-bold text-violet-700">

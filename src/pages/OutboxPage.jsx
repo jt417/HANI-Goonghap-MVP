@@ -5,9 +5,13 @@ import {
 } from 'lucide-react';
 import StatusChip from '../components/common/StatusChip';
 import ProposalDetailPanel from '../components/proposal/ProposalDetailPanel';
+import MemberConsentModal from '../components/proposal/MemberConsentModal';
 import useAppStore from '../stores/appStore';
 import { useMembers } from '../hooks/useMembers';
 import { useProposals } from '../hooks/useProposals';
+import { useSettlements } from '../hooks/useSettlements';
+import { useActivityLog, LOG_ACTIONS } from '../hooks/useActivityLog';
+import { rejectionReasons } from '../lib/constants';
 
 /* ── 매칭 점수 시각화 ───────────────────────────────────── */
 function ScoreBar({ score }) {
@@ -61,6 +65,57 @@ function ElapsedBadge({ lastAction, status }) {
   return <span className="text-xs text-slate-500">{lastAction}</span>;
 }
 
+/* ── 제안서 남은 일수 (Phase 1-6) ── */
+function proposalDaysLeft(sentDate) {
+  if (!sentDate) return null;
+  return 14 - Math.floor((Date.now() - new Date(sentDate).getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/* ── 철회 사유 모달 ──────────────────────────────────────── */
+function WithdrawModal({ selected, onClose, onConfirm }) {
+  const [reason, setReason] = useState('');
+  const [note, setNote] = useState('');
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={onClose}>
+      <div className="mx-4 w-full max-w-md rounded-2xl bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <h3 className="text-lg font-bold text-slate-900">제안 철회</h3>
+        <p className="mt-1 text-sm text-slate-500">{selected.id} ({selected.agency}) 철회 사유를 선택하세요.</p>
+        <div className="mt-4 space-y-2 max-h-60 overflow-y-auto">
+          {rejectionReasons.map((r) => (
+            <button
+              key={r.code}
+              onClick={() => setReason(r.code)}
+              className={`w-full rounded-xl border px-4 py-2.5 text-left text-sm transition ${
+                reason === r.code ? 'border-rose-300 bg-rose-50 text-rose-800' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <div className="font-medium">{r.label}</div>
+              <div className="text-xs text-slate-400">{r.desc}</div>
+            </button>
+          ))}
+        </div>
+        {reason === 'OTHER' && (
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="상세 사유를 입력하세요..."
+            rows={2}
+            className="mt-3 w-full rounded-xl border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-400"
+          />
+        )}
+        <div className="mt-5 flex justify-end gap-3">
+          <button onClick={onClose} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50">취소</button>
+          <button
+            disabled={!reason}
+            onClick={() => onConfirm(reason, note)}
+            className="rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-rose-700 disabled:opacity-40"
+          >철회 확정</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── 상태별 필터 탭 ──────────────────────────────────────── */
 const TABS = [
   { key: 'all', label: '전체' },
@@ -86,19 +141,35 @@ const COL = [
 const DEFAULT_VISIBILITY = ['학력', '궁합 요약', '소득 구간'];
 
 export default function OutboxPage() {
-  const { outbox, loading, fetchOutbox, updateProposalStatus } = useProposals();
-  const { members, setSelectedMyMember } = useMembers();
+  const { outbox, loading, fetchOutbox, updateProposalStatus, updateProposalConsent, setMeetingArranged } = useProposals();
+  const { members, setSelectedMyMember, updateMember } = useMembers();
+  const { createSettlement } = useSettlements();
+  const { addLog } = useActivityLog();
   const setActiveTab = useAppStore((s) => s.setActiveTab);
   const showToast = useAppStore((s) => s.showToast);
+  const addNotification = useAppStore((s) => s.addNotification);
 
   const [selected, setSelected] = useState(null);
   const [tab, setTab] = useState('all');
   const [q, setQ] = useState('');
   const [sortKey, setSortKey] = useState(null);
   const [sortDir, setSortDir] = useState('desc');
+  const [consentModal, setConsentModal] = useState({ open: false, side: null });
+  const [withdrawModal, setWithdrawModal] = useState(false);
 
   useEffect(() => { fetchOutbox(); }, [fetchOutbox]);
   useEffect(() => { if (!selected && outbox.length) setSelected(outbox[0]); }, [outbox]);
+
+  /* ── 제안서 14일 자동 만료 (Phase 1-6) ── */
+  useEffect(() => {
+    outbox.forEach((p) => {
+      if (!p.sentDate || ['수락', '소개 확정', '반려', '철회', '만료'].includes(p.status)) return;
+      if (proposalDaysLeft(p.sentDate) <= 0) {
+        updateProposalStatus(p.id, '만료');
+        showToast(`${p.id} 제안서가 14일 경과로 자동 만료되었습니다.`, 'slate');
+      }
+    });
+  }, [outbox]);
 
   /* 회원 이름 조회 */
   const getMemberName = (memberId) => {
@@ -176,6 +247,8 @@ export default function OutboxPage() {
     const prevStatus = selected.status;
     const { error } = await updateProposalStatus(selected.id, newStatus);
     if (!error) {
+      const logAction = newStatus === '철회' ? LOG_ACTIONS.PROPOSAL_WITHDRAW : newStatus === '소개 확정' ? LOG_ACTIONS.PROPOSAL_SEND : null;
+      if (logAction) addLog({ action: logAction, target: 'proposal', targetId: selected.id, detail: `${selected.member} → ${selected.partner}` });
       setSelected((prev) => (prev ? { ...prev, status: newStatus, lastAction: '방금' } : prev));
       const label = newStatus === '철회' ? `${selected.id} 제안이 철회되었습니다.`
         : newStatus === '소개 확정' ? `${selected.id} 소개 확정 처리되었습니다.`
@@ -235,10 +308,9 @@ export default function OutboxPage() {
         {['검토중', '열람함', '응답대기'].includes(st) && (
           <button
             onClick={() => {
-              const msg = st === '검토중'
-                ? `${selected.agency}에 열람 요청 리마인드가 발송되었습니다.`
-                : `${selected.agency}에 응답 요청 리마인드가 발송되었습니다.`;
-              showToast(msg, 'amber');
+              const label = st === '검토중' ? '열람 요청' : '응답 요청';
+              addNotification({ title: `${label} 리마인드 발송`, body: `${selected.agency} · ${selected.id}`, type: 'remind_sent', tab: 'outbox' });
+              showToast(`${selected.agency}에 ${label} 리마인드가 발송되었습니다.`, 'amber');
             }}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700 hover:bg-amber-100 transition"
           >
@@ -247,13 +319,26 @@ export default function OutboxPage() {
           </button>
         )}
         {st === '회원 확인중' && (
-          <button
-            onClick={() => showToast(`${selected.agency}에 확인 요청 리마인드가 발송되었습니다.`, 'amber')}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700 hover:bg-amber-100 transition"
-          >
-            <Bell size={15} />
-            확인 요청 리마인드
-          </button>
+          <div className="flex flex-col gap-2">
+            {selected.ourMemberConsent === '동의' && selected.counterpartConsent === '동의' ? (
+              <button
+                onClick={() => handleAction('수락')}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition"
+              >
+                <CheckCircle2 size={15} /> 소개 확정 (양측 동의 완료)
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  addNotification({ title: '확인 요청 리마인드 발송', body: `${selected.agency} · ${selected.id}`, type: 'remind_sent', tab: 'outbox' });
+                  showToast(`${selected.agency}에 확인 요청 리마인드가 발송되었습니다.`, 'amber');
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-700 hover:bg-amber-100 transition"
+              >
+                <Bell size={15} /> 확인 요청 리마인드
+              </button>
+            )}
+          </div>
         )}
         {st === '수락' && (
           <button
@@ -285,10 +370,7 @@ export default function OutboxPage() {
             </button>
             {!['수락', '소개 확정'].includes(st) && (
               <button
-                onClick={() => {
-                  if (!window.confirm(`${selected.id} 제안을 정말 철회하시겠습니까?`)) return;
-                  handleAction('철회');
-                }}
+                onClick={() => setWithdrawModal(true)}
                 className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-white px-3 py-2.5 text-xs font-medium text-rose-600 hover:bg-rose-50 transition"
               >
                 <XCircle size={13} /> 제안 철회
@@ -343,7 +425,10 @@ export default function OutboxPage() {
               <b>{stats.urgent}건</b>의 제안이 24시간 이상 미응답 상태입니다.
             </span>
             <button
-              onClick={() => showToast(`미응답 ${stats.urgent}건에 일괄 리마인드가 발송되었습니다.`, 'amber')}
+              onClick={() => {
+                addNotification({ title: '일괄 리마인드 발송', body: `미응답 ${stats.urgent}건에 리마인드 발송 완료`, type: 'remind_sent', tab: 'outbox' });
+                showToast(`미응답 ${stats.urgent}건에 일괄 리마인드가 발송되었습니다.`, 'amber');
+              }}
               className="ml-auto shrink-0 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-700 transition"
             >
               일괄 리마인드
@@ -457,7 +542,15 @@ export default function OutboxPage() {
                   <div className="lg:contents">
                     <div className="flex items-center justify-between lg:hidden">
                       <span className="truncate font-medium text-slate-800">{r.agency}</span>
-                      <StatusChip label={r.status} />
+                      <div className="flex items-center gap-1.5">
+                        {r.sentDate && !['수락', '소개 확정', '반려', '철회', '만료'].includes(r.status) && (() => {
+                          const dl = proposalDaysLeft(r.sentDate);
+                          return dl !== null && dl <= 5 ? (
+                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${dl <= 2 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>D-{dl}</span>
+                          ) : null;
+                        })()}
+                        <StatusChip label={r.status} />
+                      </div>
                     </div>
                     <div className="mt-1.5 flex items-center gap-3 lg:hidden">
                       <span className="text-xs text-slate-500">{memberName || r.memberId} → {r.candidate}</span>
@@ -474,7 +567,17 @@ export default function OutboxPage() {
                     </div>
                     <span className="hidden truncate text-slate-600 lg:block">{r.candidate}</span>
                     <span className="hidden lg:block"><ScoreBar score={r.score} /></span>
-                    <span className="hidden lg:block"><StatusChip label={r.status} /></span>
+                    <span className="hidden lg:block">
+                      <div className="flex items-center gap-1.5">
+                        <StatusChip label={r.status} />
+                        {r.sentDate && !['수락', '소개 확정', '반려', '철회', '만료'].includes(r.status) && (() => {
+                          const dl = proposalDaysLeft(r.sentDate);
+                          return dl !== null && dl <= 5 ? (
+                            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${dl <= 2 ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'}`}>D-{dl}</span>
+                          ) : null;
+                        })()}
+                      </div>
+                    </span>
                     <span className="hidden lg:block"><ElapsedBadge lastAction={r.lastAction} status={r.status} /></span>
                     <span className="hidden truncate text-xs text-slate-500 lg:block">{r.owner}</span>
                   </div>
@@ -512,9 +615,85 @@ export default function OutboxPage() {
               item={selected}
               onNavigateToMember={navigateToMember}
               actions={actions}
+              onOpenConsent={(side) => setConsentModal({ open: true, side })}
+              onMeetingAction={(type) => {
+                const autoSettlement = () => {
+                  const dueDate = new Date();
+                  dueDate.setDate(dueDate.getDate() + 30);
+                  createSettlement({
+                    partner: selected.agency,
+                    pair: `${selected.memberId} ↔ ${selected.candidate}`,
+                    amount: '500만',
+                    split: selected.recommendedSplit || '50:50',
+                    due: dueDate.toISOString().slice(0, 10).replace(/-/g, '.'),
+                    proposalId: selected.id,
+                  });
+                };
+                const addToCalendar = (detail) => {
+                  const member = members.find((m) => m.id === selected.memberId);
+                  if (member) {
+                    const meetingDate = new Date();
+                    meetingDate.setDate(meetingDate.getDate() + 7);
+                    const newMeeting = {
+                      type: '만남',
+                      date: meetingDate.toISOString().slice(0, 10),
+                      time: '19:00',
+                      location: detail || '미정',
+                      note: `${selected.candidate} 첫만남 (${selected.agency})`,
+                      proposalId: selected.id,
+                    };
+                    updateMember(member.id, { meetings: [...(member.meetings || []), newMeeting] });
+                  }
+                };
+                if (type === 'place') {
+                  const detail = window.prompt('약속 장소와 일시를 입력하세요 (예: 강남역 카페 3/20 19:00)');
+                  if (detail) {
+                    setMeetingArranged(selected.id, { type: '약속장소', detail });
+                    setSelected((prev) => prev ? { ...prev, meetingArranged: { type: '약속장소', detail }, status: '소개 확정' } : prev);
+                    addToCalendar(detail);
+                    autoSettlement();
+                    showToast('소개 확정 — 캘린더 등록 + 정산 레코드가 자동 생성되었습니다.', 'emerald');
+                  }
+                } else {
+                  const member = members.find((m) => m.id === selected.memberId);
+                  const phone = member?.phone || '등록된 번호 없음';
+                  setMeetingArranged(selected.id, { type: '연락처전달', detail: phone });
+                  setSelected((prev) => prev ? { ...prev, meetingArranged: { type: '연락처전달', detail: phone }, status: '소개 확정' } : prev);
+                  addToCalendar('연락처 전달');
+                  autoSettlement();
+                  showToast(`소개 확정 — 연락처 전달 완료 + 캘린더/정산 자동 생성`, 'emerald');
+                }
+              }}
             />
           </div>
         </div>
+      )}
+      <MemberConsentModal
+        open={consentModal.open}
+        onClose={() => setConsentModal({ open: false, side: null })}
+        proposal={selected}
+        memberName={members.find((m) => m.id === selected?.memberId)?.name}
+        counterpart={selected?.candidate}
+        side={consentModal.side}
+        onConsent={(field, value) => {
+          updateProposalConsent(selected.id, field, value);
+          setSelected((prev) => prev ? { ...prev, [field]: value } : prev);
+          showToast(`${field === 'ourMemberConsent' ? '우리 회원' : '상대 회원'}: ${value}`, value === '동의' ? 'emerald' : 'rose');
+        }}
+      />
+
+      {/* ── 철회 사유 모달 (Phase 2-4) ── */}
+      {withdrawModal && selected && (
+        <WithdrawModal
+          selected={selected}
+          onClose={() => setWithdrawModal(false)}
+          onConfirm={async (reason, note) => {
+            const label = rejectionReasons.find((r) => r.code === reason)?.label || reason;
+            await updateProposalConsent(selected.id, 'withdrawalReason', { code: reason, label, note });
+            await handleAction('철회');
+            setWithdrawModal(false);
+          }}
+        />
       )}
     </div>
   );

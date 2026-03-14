@@ -1,9 +1,10 @@
 import React from 'react';
-import { Users, HeartHandshake, CalendarCheck, Bell } from 'lucide-react';
+import { Users, HeartHandshake, Heart, CalendarCheck, Bell } from 'lucide-react';
 
 const cards = [
   { key: 'total', label: '전체 회원', icon: Users, tone: 'slate' },
   { key: 'available', label: '소개 가능', icon: HeartHandshake, tone: 'emerald' },
+  { key: 'matching', label: '매칭중', icon: Heart, tone: 'pink' },
   { key: 'todayAction', label: '오늘 액션', icon: CalendarCheck, tone: 'violet' },
   { key: 'overdue', label: '리마인더 초과', icon: Bell, tone: 'rose' },
 ];
@@ -11,6 +12,7 @@ const cards = [
 const toneStyles = {
   slate: 'bg-slate-100 text-slate-600',
   emerald: 'bg-emerald-100 text-emerald-600',
+  pink: 'bg-pink-100 text-pink-600',
   violet: 'bg-violet-100 text-violet-600',
   rose: 'bg-rose-100 text-rose-600',
 };
@@ -19,12 +21,13 @@ export default function MemberStatsRibbon({ members, reminders }) {
   const counts = {
     total: members.length,
     available: members.filter((m) => m.status === '소개 가능').length,
+    matching: members.filter((m) => ['소개 진행중', '매칭중'].includes(m.status)).length,
     todayAction: members.filter((m) => m.nextAction?.includes('오늘')).length,
     overdue: reminders.length,
   };
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
       {cards.map(({ key, label, icon: Icon, tone }) => (
         <div key={key} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
           <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${toneStyles[tone]}`}>

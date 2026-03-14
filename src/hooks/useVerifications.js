@@ -35,7 +35,17 @@ export function useVerifications() {
     return { data, error };
   }, []);
 
-  return { items, loading, fetchVerifications, updateStatus, createVerification };
+  const updateVerification = useCallback(async (id, updates) => {
+    if (!isSupabaseConfigured()) {
+      setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...updates } : item)));
+      return { error: null };
+    }
+    const { error } = await supabase.from('verifications').update(updates).eq('id', id);
+    if (!error) await fetchVerifications();
+    return { error };
+  }, [fetchVerifications]);
+
+  return { items, loading, fetchVerifications, updateStatus, updateVerification, createVerification };
 }
 
 function mapDbToLocal(row) {

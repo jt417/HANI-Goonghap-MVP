@@ -1,10 +1,30 @@
-import React, { useState } from 'react';
-import { Sparkles, Heart, CheckCircle2, AlertTriangle } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Sparkles, Heart, CheckCircle2, AlertTriangle, Target } from 'lucide-react';
 import GradeBadge from '../../common/GradeBadge';
 import SajuCompatModal from '../../saju/SajuCompatModal';
 import { ELEMENT_HANJA, STEM_ELEMENT, calculateCompatibility } from '../../../lib/saju';
+import { idealTypeCategories, idealTypeOptions } from '../../../lib/constants';
 
 const gradeLabels = { overall: '종합', wealth: '자산', appearance: '외모', family: '집안', career: '직업', age: '나이', lifestyle: '라이프' };
+
+/* C-5: 이상형 조건 반영 매칭 점수 계산 */
+function calcIdealFit(member, candidate) {
+  if (!member.idealType || !candidate.grade?.categories) return null;
+  const catMap = { wealth: 'wealth', appearance: 'appearance', career: 'career', age: 'age', lifestyle: 'lifestyle', family: 'family' };
+  let totalWeight = 0;
+  let weightedScore = 0;
+  idealTypeCategories.forEach((cat) => {
+    const pref = member.idealType?.[cat.key];
+    const option = idealTypeOptions.find((o) => o.value === pref);
+    const multiplier = option?.multiplier ?? 1.0;
+    if (multiplier === 0) return;
+    const catScore = candidate.grade?.categories?.[catMap[cat.key]]?.score || 50;
+    totalWeight += multiplier;
+    weightedScore += catScore * multiplier;
+  });
+  if (totalWeight === 0) return null;
+  return Math.round(weightedScore / totalWeight);
+}
 
 export default function AnalysisTab({ member, members }) {
   const [quickCompatTarget, setQuickCompatTarget] = useState(null);
@@ -79,10 +99,10 @@ export default function AnalysisTab({ member, members }) {
                 </div>
               </div>
               {[
-                { label: '일간 궁합', score: quickCompat.analysis.dayMaster.score, icon: Heart },
-                { label: '오행 상보성', score: quickCompat.analysis.elements.score, icon: CheckCircle2 },
-                { label: '용신 호환', score: quickCompat.analysis.yongshin.score, icon: Sparkles },
-                { label: '지지 관계', score: quickCompat.analysis.branches.score, icon: AlertTriangle },
+                { label: '일간 궁합', score: quickCompat.rawAnalysis?.dayMaster?.score ?? 0, icon: Heart },
+                { label: '오행 상보성', score: quickCompat.rawAnalysis?.elements?.score ?? 0, icon: CheckCircle2 },
+                { label: '용신 호환', score: quickCompat.rawAnalysis?.yongshin?.score ?? 0, icon: Sparkles },
+                { label: '지지 관계', score: quickCompat.rawAnalysis?.branches?.score ?? 0, icon: AlertTriangle },
               ].map(({ label, score, icon: Icon }) => {
                 const color = score >= 80 ? 'bg-emerald-500' : score >= 60 ? 'bg-violet-500' : score >= 40 ? 'bg-amber-500' : 'bg-rose-500';
                 const textColor = score >= 80 ? 'text-emerald-700' : score >= 60 ? 'text-violet-700' : score >= 40 ? 'text-amber-700' : 'text-rose-700';
@@ -96,10 +116,10 @@ export default function AnalysisTab({ member, members }) {
                   </div>
                 );
               })}
-              {quickCompat.analysis.branches.relations?.filter((r) => !r.positive).length > 0 && (
+              {quickCompat.rawAnalysis?.branches?.relations?.filter((r) => !r.positive).length > 0 && (
                 <div className="rounded-lg bg-amber-50 px-3 py-1.5 text-[10px] text-amber-800">
                   <span className="font-bold">주의: </span>
-                  {quickCompat.analysis.branches.relations.filter((r) => !r.positive).map((r) => r.detail).join(', ')}
+                  {quickCompat.rawAnalysis.branches.relations.filter((r) => !r.positive).map((r) => r.detail).join(', ')}
                 </div>
               )}
             </div>
@@ -155,6 +175,45 @@ export default function AnalysisTab({ member, members }) {
           })}
         </div>
       </div>
+
+      {/* 이상형 적합도 (C-5) */}
+      {member.idealType && Object.keys(member.idealType).length > 0 && (
+        <div className="rounded-2xl border border-pink-200 bg-pink-50 p-4">
+          <div className="flex items-center gap-2 text-sm font-bold text-pink-900 mb-3">
+            <Target size={16} /> 이상형 선호도 가중치
+          </div>
+          <div className="space-y-2">
+            {idealTypeCategories.map((cat) => {
+              const pref = member.idealType?.[cat.key];
+              const option = idealTypeOptions.find((o) => o.value === pref);
+              if (!pref || option?.multiplier === 0) return null;
+              return (
+                <div key={cat.key} className="flex items-center gap-2">
+                  <span className="w-6 text-center">{cat.icon}</span>
+                  <span className="w-20 text-xs font-medium text-slate-700">{cat.label}</span>
+                  <div className="flex-1 h-1.5 rounded-full bg-pink-100">
+                    <div className="h-1.5 rounded-full bg-pink-500" style={{ width: `${(option?.multiplier || 1) / 3 * 100}%` }} />
+                  </div>
+                  <span className="text-[11px] font-bold text-pink-700 w-14 text-right">{pref}</span>
+                </div>
+              );
+            })}
+          </div>
+          {quickCompatTarget && (() => {
+            const fitScore = calcIdealFit(member, quickCompatTarget);
+            if (fitScore === null) return null;
+            const color = fitScore >= 80 ? 'text-emerald-700' : fitScore >= 60 ? 'text-violet-700' : fitScore >= 40 ? 'text-amber-700' : 'text-rose-700';
+            return (
+              <div className="mt-3 rounded-xl bg-white/80 px-3 py-2 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700">
+                  {quickCompatTarget.name} 이상형 적합도
+                </span>
+                <span className={`text-xl font-black ${color}`}>{fitScore}점</span>
+              </div>
+            );
+          })()}
+        </div>
+      )}
 
       {/* Saju Compat Modal */}
       {sajuCompatOpen && (

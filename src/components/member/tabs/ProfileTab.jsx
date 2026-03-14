@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Edit3, Save, Camera, Plus, X } from 'lucide-react';
+import { Edit3, Save, Camera, Plus, X, Heart, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { bodyTypeOptions, eduOptions, locationOptions, idealTypeCategories, idealTypeOptions } from '../../../lib/constants';
 import { normalizeIdealWeights } from '../../../lib/scoring';
 
@@ -19,6 +19,7 @@ export default function ProfileTab({ member, onUpdate, showToast }) {
       edu: member.edu || '',
       family: member.family || '',
       appearanceNote: member.appearanceNote || '',
+      phone: member.phone || '',
     });
     setEditMode(true);
   };
@@ -68,6 +69,7 @@ export default function ProfileTab({ member, onUpdate, showToast }) {
     ['학력', member.edu],
     ['집안', member.family],
     ['외모 메모', member.appearanceNote],
+    ['전화번호', member.phone],
   ];
 
   const renderEditField = (label, key) => {
@@ -122,7 +124,7 @@ export default function ProfileTab({ member, onUpdate, showToast }) {
         </div>
         {editMode ? (
           <div className="grid grid-cols-2 gap-3">
-            {[['직업', 'job'], ['연소득', 'income'], ['키', 'height'], ['체형', 'bodyType'], ['거주', 'location'], ['학력', 'edu'], ['집안', 'family'], ['외모 메모', 'appearanceNote']].map(([label, key]) => (
+            {[['직업', 'job'], ['연소득', 'income'], ['키', 'height'], ['체형', 'bodyType'], ['거주', 'location'], ['학력', 'edu'], ['집안', 'family'], ['외모 메모', 'appearanceNote'], ['전화번호', 'phone']].map(([label, key]) => (
               <div key={key} className="rounded-xl border border-violet-200 p-3">
                 <div className="text-xs text-violet-600">{label}</div>
                 {renderEditField(label, key)}
@@ -140,6 +142,39 @@ export default function ProfileTab({ member, onUpdate, showToast }) {
           </div>
         )}
       </div>
+
+      {/* Contract Info (Phase 2-2) */}
+      <div className="rounded-2xl border border-slate-200 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-sm font-bold text-slate-800">계약 정보</div>
+          {!editMode && (
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+              member.paymentStatus === '완납' ? 'bg-emerald-100 text-emerald-700' :
+              member.paymentStatus === '미납' ? 'bg-rose-100 text-rose-700' :
+              member.paymentStatus === '분납중' ? 'bg-amber-100 text-amber-700' :
+              'bg-slate-100 text-slate-500'
+            }`}>{member.paymentStatus || '미등록'}</span>
+          )}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            ['가입일', member.contractDate || '-'],
+            ['만료일', member.contractEndDate || '-'],
+            ['가입비', member.fee ? `${member.fee}만원` : '-'],
+            ['성공보수', member.successFee ? `${member.successFee}만원` : '-'],
+          ].map(([k, v]) => (
+            <div key={k} className="rounded-xl border border-slate-200 p-3">
+              <div className="text-xs text-slate-400">{k}</div>
+              <div className="mt-1 text-sm font-medium text-slate-800">{v}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Match Outcome Tracking */}
+      {(member.status === '매칭중' || member.status === '성혼' || member.matchOutcome) && (
+        <MatchOutcomeSection member={member} onUpdate={onUpdate} showToast={showToast} />
+      )}
 
       {/* Photo Gallery */}
       <div className="rounded-2xl border border-slate-200 p-4">
@@ -216,6 +251,39 @@ export default function ProfileTab({ member, onUpdate, showToast }) {
         );
       })()}
 
+      {/* Ideal Conditions (Phase 2-3) */}
+      <div className="rounded-2xl border border-violet-200 bg-violet-50/30 p-4">
+        <div className="text-sm font-bold text-violet-800 mb-3">조건 분류</div>
+        <div className="space-y-3">
+          {[
+            { key: 'mustHave', label: '절대 조건', color: 'rose', desc: '이 조건이 안 맞으면 소개 불가' },
+            { key: 'preferred', label: '선호 조건', color: 'blue', desc: '있으면 좋지만 필수는 아님' },
+            { key: 'dealBreaker', label: '거절 조건', color: 'slate', desc: '이 조건이면 절대 거절' },
+          ].map(({ key, label, color, desc }) => (
+            <div key={key}>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className={`h-2 w-2 rounded-full ${color === 'rose' ? 'bg-rose-500' : color === 'blue' ? 'bg-blue-500' : 'bg-slate-500'}`} />
+                <span className="text-xs font-bold text-slate-700">{label}</span>
+                <span className="text-[10px] text-slate-400">{desc}</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {(member.idealConditions?.[key] || []).length > 0 ? (
+                  member.idealConditions[key].map((cond) => (
+                    <span key={cond} className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${
+                      color === 'rose' ? 'bg-rose-50 text-rose-700 border-rose-200' :
+                      color === 'blue' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      'bg-slate-100 text-slate-600 border-slate-200'
+                    }`}>{cond}</span>
+                  ))
+                ) : (
+                  <span className="text-[11px] text-slate-400">미설정</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Photo Preview Modal */}
       {previewPhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setPreviewPhoto(null)}>
@@ -225,6 +293,157 @@ export default function ProfileTab({ member, onUpdate, showToast }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── 성혼 추적 파이프라인 ── */
+const MATCH_STAGES = [
+  { key: '교제중', label: '교제중', color: 'bg-pink-500' },
+  { key: '성사 확정', label: '성혼 확정', color: 'bg-rose-500' },
+  { key: '성혼 정산', label: '정산 완료', color: 'bg-emerald-500' },
+];
+
+function MatchOutcomeSection({ member, onUpdate, showToast }) {
+  const [editing, setEditing] = useState(false);
+  const outcome = member.matchOutcome || {};
+  const currentStage = outcome.stage || '교제중';
+  const currentIdx = MATCH_STAGES.findIndex((s) => s.key === currentStage);
+
+  const handleStageAdvance = () => {
+    const nextIdx = currentIdx + 1;
+    if (nextIdx >= MATCH_STAGES.length) return;
+    const next = MATCH_STAGES[nextIdx];
+    const updates = { ...outcome, stage: next.key };
+    if (next.key === '성사 확정') updates.confirmDate = new Date().toISOString().split('T')[0];
+    if (next.key === '성혼 정산') updates.settlementDate = new Date().toISOString().split('T')[0];
+    onUpdate(member.id, { matchOutcome: updates, status: next.key === '성혼 정산' ? '성혼' : member.status });
+    showToast(`${next.label} 단계로 전환되었습니다.`, 'rose');
+  };
+
+  const handleStartDating = (partnerName) => {
+    onUpdate(member.id, {
+      matchOutcome: { stage: '교제중', partnerName, startDate: new Date().toISOString().split('T')[0] },
+      status: '매칭중',
+    });
+    showToast(`교제 시작: ${partnerName}`, 'rose');
+    setEditing(false);
+  };
+
+  if (!outcome.stage && !editing) {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-bold text-rose-800">
+            <Heart size={16} /> 성혼 추적
+          </div>
+          <button onClick={() => setEditing(true)} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700">
+            교제 시작
+          </button>
+        </div>
+        <p className="mt-2 text-xs text-rose-600">아직 교제가 시작되지 않았습니다.</p>
+      </div>
+    );
+  }
+
+  if (editing) {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+        <div className="flex items-center gap-2 text-sm font-bold text-rose-800 mb-3">
+          <Heart size={16} /> 교제 시작 등록
+        </div>
+        <PartnerInput onSubmit={handleStartDating} onCancel={() => setEditing(false)} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-rose-200 bg-rose-50/50 p-4">
+      <div className="flex items-center gap-2 text-sm font-bold text-rose-800 mb-3">
+        <Heart size={16} /> 성혼 추적
+      </div>
+
+      {/* Stage stepper */}
+      <div className="flex items-center gap-1 mb-4">
+        {MATCH_STAGES.map((stage, idx) => {
+          const isActive = idx <= currentIdx;
+          const isCurrent = idx === currentIdx;
+          return (
+            <React.Fragment key={stage.key}>
+              {idx > 0 && <ArrowRight size={12} className={isActive ? 'text-rose-400' : 'text-slate-300'} />}
+              <div className={`rounded-lg px-3 py-1.5 text-[11px] font-bold transition ${
+                isCurrent ? `${stage.color} text-white ring-2 ring-rose-200` :
+                isActive ? `${stage.color} text-white opacity-50` :
+                'bg-slate-100 text-slate-400'
+              }`}>
+                {stage.label}
+              </div>
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* Info */}
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        {outcome.partnerName && (
+          <div className="rounded-xl border border-rose-200 bg-white p-2.5">
+            <div className="text-[10px] text-slate-400">매칭 상대</div>
+            <div className="mt-0.5 text-sm font-medium text-slate-800">{outcome.partnerName}</div>
+          </div>
+        )}
+        {outcome.startDate && (
+          <div className="rounded-xl border border-rose-200 bg-white p-2.5">
+            <div className="text-[10px] text-slate-400">교제 시작일</div>
+            <div className="mt-0.5 text-sm font-medium text-slate-800">{outcome.startDate}</div>
+          </div>
+        )}
+        {outcome.confirmDate && (
+          <div className="rounded-xl border border-rose-200 bg-white p-2.5">
+            <div className="text-[10px] text-slate-400">성혼 확정일</div>
+            <div className="mt-0.5 text-sm font-medium text-slate-800">{outcome.confirmDate}</div>
+          </div>
+        )}
+        {outcome.settlementDate && (
+          <div className="rounded-xl border border-rose-200 bg-white p-2.5">
+            <div className="text-[10px] text-slate-400">정산 완료일</div>
+            <div className="mt-0.5 text-sm font-medium text-slate-800">{outcome.settlementDate}</div>
+          </div>
+        )}
+      </div>
+
+      {/* Advance button */}
+      {currentIdx < MATCH_STAGES.length - 1 && (
+        <button
+          onClick={handleStageAdvance}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-rose-700 transition"
+        >
+          {MATCH_STAGES[currentIdx + 1].label} 단계로 전환 <ArrowRight size={14} />
+        </button>
+      )}
+      {currentIdx === MATCH_STAGES.length - 1 && (
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-medium text-emerald-700">
+          <CheckCircle2 size={14} /> 성혼 정산 완료
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PartnerInput({ onSubmit, onCancel }) {
+  const [name, setName] = useState('');
+  return (
+    <div className="flex gap-2">
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && name.trim() && onSubmit(name.trim())}
+        placeholder="매칭 상대 이름"
+        className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm outline-none focus:border-rose-400"
+        autoFocus
+      />
+      <button onClick={() => name.trim() && onSubmit(name.trim())} disabled={!name.trim()} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-40">시작</button>
+      <button onClick={onCancel} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100">취소</button>
     </div>
   );
 }

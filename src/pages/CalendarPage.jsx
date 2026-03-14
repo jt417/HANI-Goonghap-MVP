@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import useAppStore from '../stores/appStore';
 import { useMembers } from '../hooks/useMembers';
+import { useProposals } from '../hooks/useProposals';
 import { useReminders } from '../hooks/useReminders';
 import { meetingTypeColors } from '../lib/constants';
 
@@ -37,10 +38,10 @@ const STATUS_STYLES = {
 };
 
 export default function CalendarPage() {
-  const members = useAppStore((s) => s.members);
   const profile = useAppStore((s) => s.profile);
   const showToast = useAppStore((s) => s.showToast);
-  const { updateMember } = useMembers();
+  const { members, updateMember } = useMembers();
+  const { outbox, updateProposalStatus } = useProposals();
   const { myReminders, allReminders } = useReminders();
 
   const [currentMonth, setCurrentMonth] = useState(new Date(TODAY.getFullYear(), TODAY.getMonth(), 1));
@@ -690,6 +691,69 @@ export default function CalendarPage() {
                           <div className="mt-1.5 text-[10px] text-slate-400">
                             담당: {member.manager}
                           </div>
+
+                          {/* 미팅 결과 입력 (Phase 1-3) — 오늘 이전 또는 오늘 미팅 */}
+                          {meeting.date <= TODAY_STR && meeting.type === '만남' && (
+                            meeting.result ? (
+                              <div className={`mt-2 rounded-lg px-2.5 py-1.5 text-[11px] font-medium ${
+                                meeting.result === '긍정' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                                meeting.result === '재만남' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                                meeting.result === '거절' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                                'bg-slate-50 text-slate-600 border border-slate-200'
+                              }`}>
+                                결과: {meeting.result}{meeting.resultNote ? ` — ${meeting.resultNote}` : ''}
+                              </div>
+                            ) : (
+                              <div className="mt-2 flex gap-1.5">
+                                {['긍정', '재만남', '거절'].map((result) => (
+                                  <button
+                                    key={result}
+                                    onClick={() => {
+                                      const note = result === '거절'
+                                        ? window.prompt('거절 사유를 입력하세요:') || ''
+                                        : '';
+                                      const meetings = [...(member.meetings || [])];
+                                      const mi = meetingIdx >= 0 ? meetingIdx : idx;
+                                      meetings[mi] = { ...meetings[mi], result, resultNote: note };
+
+                                      // 후속 조치: 긍정/재만남 → 2차 만남 자동 생성
+                                      if (result === '긍정' || result === '재만남') {
+                                        const followupDate = new Date(meeting.date + 'T00:00:00');
+                                        followupDate.setDate(followupDate.getDate() + 7);
+                                        meetings.push({
+                                          date: followupDate.toISOString().slice(0, 10),
+                                          type: '만남',
+                                          time: meeting.time || '19:00',
+                                          location: '',
+                                          note: `${result === '긍정' ? '2차' : '재'} 만남 (자동 생성)`,
+                                          proposalId: meeting.proposalId,
+                                        });
+                                      }
+                                      updateMember(member.id, { meetings });
+
+                                      // 후속 조치: 거절 → 관련 제안 불발 처리
+                                      if (result === '거절' && meeting.proposalId) {
+                                        const proposal = outbox.find((p) => p.id === meeting.proposalId);
+                                        if (proposal && !['철회', '반려', '만료'].includes(proposal.status)) {
+                                          updateProposalStatus(meeting.proposalId, '반려');
+                                        }
+                                      }
+
+                                      const followMsg = result === '긍정' || result === '재만남' ? ' — 후속 만남 자동 생성됨' : result === '거절' && meeting.proposalId ? ' — 제안 불발 처리' : '';
+                                      showToast(`미팅 결과: ${result}${note ? ` (${note})` : ''}${followMsg}`, 'emerald');
+                                    }}
+                                    className={`rounded-lg px-2 py-1 text-[10px] font-bold transition ${
+                                      result === '긍정' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' :
+                                      result === '재만남' ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' :
+                                      'bg-rose-100 text-rose-700 hover:bg-rose-200'
+                                    }`}
+                                  >
+                                    {result}
+                                  </button>
+                                ))}
+                              </div>
+                            )
+                          )}
                         </div>
                       );
                     })}

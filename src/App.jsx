@@ -11,9 +11,12 @@ import VerifyPage from './pages/VerifyPage';
 import SettlementPage from './pages/SettlementPage';
 import DisputePage from './pages/DisputePage';
 import CalendarPage from './pages/CalendarPage';
+import MyProfilePage from './pages/MyProfilePage';
+import ReceivedProposalsPage from './pages/ReceivedProposalsPage';
 import MemberRegistrationModal from './components/member/MemberRegistrationModal';
 import ProposalModal from './components/proposal/ProposalModal';
 import Toast from './components/common/Toast';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import { useAuth } from './hooks/useAuth';
 import useAppStore from './stores/appStore';
 
@@ -21,6 +24,7 @@ export default function App() {
   const { user, isAuthenticated, isDemoMode, signIn, signOut } = useAuth();
   const {
     activeTab, setActiveTab,
+    userRole,
     selectedMyMember, setSelectedMyMember, addMember,
     selectedNetworkMember, setSelectedNetworkMember,
     compareList, setCompareList,
@@ -56,34 +60,56 @@ export default function App() {
         <Header onSignOut={signOut} onMenuToggle={toggleSidebar} />
 
         <main className="min-h-0 flex-1 overflow-hidden">
-          {activeTab === 'dashboard' && (
-            <DashboardPage onOpenRegistration={() => setRegistrationOpen(true)} />
+          <ErrorBoundary>
+          {/* ── 개인회원 페이지 ── */}
+          {userRole === 'individual' && (
+            <>
+              {activeTab === 'myProfile' && <MyProfilePage />}
+              {activeTab === 'receivedProposals' && <ReceivedProposalsPage />}
+              {activeTab === 'verify' && <VerifyPage />}
+            </>
           )}
-          {activeTab === 'myMembers' && (
-            <MyMembersPage
-              onOpenRegistration={() => setRegistrationOpen(true)}
-            />
+
+          {/* ── 매칭매니저 & 관리자 공통 페이지 ── */}
+          {(userRole === 'manager' || userRole === 'admin') && (
+            <>
+              {activeTab === 'dashboard' && (
+                <DashboardPage onOpenRegistration={() => setRegistrationOpen(true)} />
+              )}
+              {activeTab === 'myMembers' && (
+                <MyMembersPage
+                  onOpenRegistration={() => setRegistrationOpen(true)}
+                />
+              )}
+              {activeTab === 'calendar' && <CalendarPage />}
+              {activeTab === 'network' && (
+                <NetworkPage
+                  selectedMyMember={selectedMyMember}
+                  compareList={compareList}
+                  setCompareList={setCompareList}
+                  selectedNetworkMember={selectedNetworkMember}
+                  setSelectedNetworkMember={setSelectedNetworkMember}
+                  openProposal={setProposalTarget}
+                />
+              )}
+              {activeTab === 'inbox' && <InboxPage />}
+              {activeTab === 'outbox' && <OutboxPage />}
+              {activeTab === 'verify' && <VerifyPage />}
+              {activeTab === 'settlement' && <SettlementPage />}
+              {activeTab === 'dispute' && <DisputePage />}
+              {activeTab === 'agencies' && (
+                <div className="flex h-full items-center justify-center"><p className="text-sm text-slate-400">업체 관리 페이지 준비 중입니다.</p></div>
+              )}
+              {activeTab === 'individualMembers' && (
+                <div className="flex h-full items-center justify-center"><p className="text-sm text-slate-400">개인회원 관리 페이지 준비 중입니다.</p></div>
+              )}
+            </>
           )}
-          {activeTab === 'calendar' && <CalendarPage />}
-          {activeTab === 'network' && (
-            <NetworkPage
-              selectedMyMember={selectedMyMember}
-              compareList={compareList}
-              setCompareList={setCompareList}
-              selectedNetworkMember={selectedNetworkMember}
-              setSelectedNetworkMember={setSelectedNetworkMember}
-              openProposal={setProposalTarget}
-            />
-          )}
-          {activeTab === 'inbox' && <InboxPage />}
-          {activeTab === 'outbox' && <OutboxPage />}
-          {activeTab === 'verify' && <VerifyPage />}
-          {activeTab === 'settlement' && <SettlementPage />}
-          {activeTab === 'dispute' && <DisputePage />}
+          </ErrorBoundary>
         </main>
       </div>
 
-      {registrationOpen ? (
+      {(userRole === 'manager' || userRole === 'admin') && registrationOpen ? (
         <MemberRegistrationModal
           open={registrationOpen}
           onClose={() => setRegistrationOpen(false)}

@@ -1,5 +1,50 @@
 import React, { useState } from 'react';
-import { Activity } from 'lucide-react';
+import { Activity, Users, Shield, User } from 'lucide-react';
+
+const ROLE_OPTIONS = [
+  {
+    role: 'manager',
+    label: '매칭매니저',
+    desc: '회원 관리, 매칭 검색, 소개 제안',
+    icon: Users,
+    color: 'violet',
+    email: 'manager@hani.kr',
+  },
+  {
+    role: 'individual',
+    label: '개인회원',
+    desc: '프로필 등록, 소개 제안 받기',
+    icon: User,
+    color: 'rose',
+    email: 'user@hani.kr',
+  },
+  {
+    role: 'admin',
+    label: '관리자',
+    desc: '전체 시스템 관리, 업체 관리',
+    icon: Shield,
+    color: 'slate',
+    email: 'admin@hani.kr',
+  },
+];
+
+const colorMap = {
+  violet: {
+    bg: 'bg-violet-50 hover:bg-violet-100 border-violet-200 hover:border-violet-300',
+    icon: 'bg-violet-500',
+    text: 'text-violet-700',
+  },
+  rose: {
+    bg: 'bg-rose-50 hover:bg-rose-100 border-rose-200 hover:border-rose-300',
+    icon: 'bg-rose-500',
+    text: 'text-rose-700',
+  },
+  slate: {
+    bg: 'bg-slate-50 hover:bg-slate-100 border-slate-200 hover:border-slate-300',
+    icon: 'bg-slate-700',
+    text: 'text-slate-700',
+  },
+};
 
 export default function LoginPage({ onLogin, isDemoMode }) {
   const [email, setEmail] = useState('');
@@ -21,10 +66,11 @@ export default function LoginPage({ onLogin, isDemoMode }) {
     }
   };
 
-  const handleDemoLogin = async () => {
+  const handleDemoLogin = async (role) => {
     setLoading(true);
     try {
-      const { error: err } = await onLogin('demo@hani.kr', 'demo');
+      const opt = ROLE_OPTIONS.find((r) => r.role === role);
+      const { error: err } = await onLogin(opt?.email || 'demo@hani.kr', 'demo', role);
       if (err) setError(err.message || '데모 로그인에 실패했습니다.');
     } catch {
       setError('데모 로그인 중 오류가 발생했습니다.');
@@ -41,7 +87,7 @@ export default function LoginPage({ onLogin, isDemoMode }) {
             <Activity size={32} color="white" />
           </div>
           <h1 className="mt-4 text-2xl font-bold text-slate-900">HANI MatchOS</h1>
-          <p className="mt-2 text-sm text-slate-500">프리미엄 매칭 에이전시 CRM</p>
+          <p className="mt-2 text-sm text-slate-500">프리미엄 매칭 에이전시 플랫폼</p>
         </div>
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -82,14 +128,30 @@ export default function LoginPage({ onLogin, isDemoMode }) {
             </button>
           </form>
 
-          <div className="mt-4 border-t border-slate-200 pt-4">
-            <button
-              onClick={handleDemoLogin}
-              disabled={loading}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
-            >
-              데모 모드로 체험하기
-            </button>
+          {/* Demo mode role selection */}
+          <div className="mt-5 border-t border-slate-200 pt-5">
+            <div className="mb-3 text-center text-xs font-medium text-slate-400">데모 모드로 체험하기</div>
+            <div className="space-y-2">
+              {ROLE_OPTIONS.map(({ role, label, desc, icon: Icon, color }) => {
+                const c = colorMap[color];
+                return (
+                  <button
+                    key={role}
+                    onClick={() => handleDemoLogin(role)}
+                    disabled={loading}
+                    className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition disabled:opacity-50 ${c.bg}`}
+                  >
+                    <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-white ${c.icon}`}>
+                      <Icon size={18} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className={`text-sm font-bold ${c.text}`}>{label}</div>
+                      <div className="text-xs text-slate-500">{desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {isDemoMode && (

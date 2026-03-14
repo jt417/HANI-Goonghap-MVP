@@ -22,34 +22,68 @@ export function buildPercentile(score, thresholds) {
 /* ── 개별 필드 점수 산출 (0~100) ──              */
 /* ══════════════════════════════════════════════ */
 
-// ── 경제력 ──
+// ── 경제력 (나이+성별 차등, 2025-2026 통계청/국세청 기준) ──
 
-function scoreIncome(income) {
-  if (!income || income <= 0) return 40;
-  if (income >= 30000) return 98;
-  if (income >= 20000) return 95;
-  if (income >= 15000) return 92;
-  if (income >= 12000) return 88;
-  if (income >= 10000) return 84;
-  if (income >= 8000) return 78;
-  if (income >= 6000) return 72;
-  if (income >= 5000) return 66;
-  if (income >= 4000) return 60;
-  if (income >= 3000) return 52;
-  return 40 + (income / 3000) * 12;
+/*
+ * 연봉 점수: 동일 연봉이라도 나이·성별에 따라 점수가 달라짐.
+ * 28세 남성 7000만 → A급(85점대), 40세 남성 7000만 → B급(72점대)
+ *
+ * 벤치마크 출처:
+ *  - 통계청 2024 임금근로일자리 소득(연령별 분위)
+ *  - 국세청 근로소득 백분위(상위 5% ≈ 1.3억, 상위 10% ≈ 1억)
+ *  - 듀오 성혼 남성 기준 연봉 7000만(36.9세) = B~B+급
+ *  - 가연 이상적 배우자 연봉: 남 6000만, 여 4400만
+ *
+ * 티어: [S=95, A=85, B=72, C=60], 미만=40~60 보간
+ */
+function _interpolateByTier(value, thresholds) {
+  const [s, a, b, c] = thresholds;
+  if (value >= s) return Math.min(98, 95 + ((value - s) / s) * 10);
+  if (value >= a) return 85 + ((value - a) / (s - a)) * 10;
+  if (value >= b) return 72 + ((value - b) / (a - b)) * 13;
+  if (value >= c) return 60 + ((value - c) / (b - c)) * 12;
+  if (c > 0) return 40 + (value / c) * 20;
+  return 40;
 }
 
-function scoreFinancial(financial) {
+function scoreIncome(income, gender, birthYear) {
+  if (!income || income <= 0) return 40;
+  const age = birthYear ? 2026 - Number(birthYear) : 30;
+
+  let t; // [S(상위5%), A(상위15%), B(상위35%), C(상위65%)] — 만원
+  if (gender === 'M') {
+    if (age <= 29)      t = [8000,  5500,  4200, 3200];
+    else if (age <= 34) t = [11000, 7500,  5500, 4000];
+    else if (age <= 39) t = [14000, 9500,  7000, 5000];
+    else if (age <= 44) t = [17000, 12000, 8500, 6000];
+    else                t = [19000, 14000, 9500, 6500];
+  } else {
+    if (age <= 29)      t = [5500,  4000,  3200, 2600];
+    else if (age <= 34) t = [7000,  5000,  3800, 3000];
+    else if (age <= 39) t = [8000,  6000,  4500, 3400];
+    else                t = [8500,  6500,  4800, 3600];
+  }
+  return Math.round(_interpolateByTier(income, t));
+}
+
+/*
+ * 금융자산 점수: 나이별 차등 (성별 무관 — 자산축적은 성별 차이 적음)
+ * 벤치마크: 2025 가계금융복지조사 + 신한은행 보통사람 금융생활 보고서
+ *  - 20대 미혼 평균 금융자산 ~3625만
+ *  - 30초 개인 금융자산 평균 ~5000-8000만
+ *  - 40대 가구 평균 순자산 4.4억 (금융자산 비중 24%)
+ */
+function scoreFinancial(financial, birthYear) {
   if (!financial || financial <= 0) return 35;
-  if (financial >= 100000) return 98;
-  if (financial >= 50000) return 94;
-  if (financial >= 30000) return 90;
-  if (financial >= 20000) return 85;
-  if (financial >= 10000) return 78;
-  if (financial >= 5000) return 70;
-  if (financial >= 3000) return 62;
-  if (financial >= 1000) return 52;
-  return 35 + (financial / 1000) * 17;
+  const age = birthYear ? 2026 - Number(birthYear) : 30;
+
+  let t; // [S, A, B, C] — 만원
+  if (age <= 29)      t = [15000, 7000,  3500, 1500];
+  else if (age <= 34) t = [30000, 15000, 7000, 3500];
+  else if (age <= 39) t = [50000, 25000, 12000, 6000];
+  else                t = [80000, 40000, 20000, 10000];
+
+  return Math.round(_interpolateByTier(financial, t));
 }
 
 function scoreRealEstate(value, birthYear) {
@@ -118,31 +152,41 @@ function scoreEdu(edu) {
 function scoreHeight(height, gender) {
   if (!height) return 50;
   if (gender === 'M') {
-    if (height >= 185) return 96;
-    if (height >= 182) return 92;
-    if (height >= 180) return 88;
-    if (height >= 178) return 82;
-    if (height >= 175) return 75;
+    // 최적 구간: 181-186 (최고점 95)
+    if (height >= 181 && height <= 186) return 95;
+    // 최적 위: 점차 감점
+    if (height > 186) return Math.max(60, 95 - (height - 186) * 4);
+    // 최적 아래: 점차 감점
+    if (height >= 179) return 90;
+    if (height >= 177) return 84;
+    if (height >= 175) return 76;
     if (height >= 173) return 68;
     if (height >= 170) return 58;
-    return Math.max(35, 58 - (170 - height) * 2);
+    return Math.max(30, 58 - (170 - height) * 3);
   }
-  if (height >= 172) return 94;
-  if (height >= 170) return 90;
-  if (height >= 168) return 86;
-  if (height >= 165) return 80;
-  if (height >= 163) return 74;
-  if (height >= 160) return 66;
-  if (height >= 158) return 58;
-  return Math.max(35, 58 - (158 - height) * 2);
+  // 여성: 최적 구간 165-169 (최고점 95)
+  if (height >= 165 && height <= 169) return 95;
+  // 최적 위: 점차 감점
+  if (height > 169) return Math.max(60, 95 - (height - 169) * 4);
+  // 최적 아래: 점차 감점
+  if (height >= 163) return 88;
+  if (height >= 161) return 80;
+  if (height >= 159) return 72;
+  if (height >= 157) return 64;
+  if (height >= 155) return 56;
+  return Math.max(30, 56 - (155 - height) * 3);
 }
 
 function scoreBodyType(bodyType) {
-  const high = ['슬림탄탄', '슬림', '균형형', '건강미', '건강미형', '글래머'];
-  const mid = ['보통', '건장', '근육형', '근육', '듬직', '마른', '관리', '귀염'];
-  if (high.includes(bodyType)) return 88;
+  const top = ['슬림탄탄', '균형형'];
+  const high = ['슬림', '건강미', '글래머', '볼륨'];
+  const mid = ['보통', '건장', '근육형'];
+  const low = ['마른', '통통'];
+  if (top.includes(bodyType)) return 92;
+  if (high.includes(bodyType)) return 84;
   if (mid.includes(bodyType)) return 72;
-  return 58;
+  if (low.includes(bodyType)) return 60;
+  return 50; // 과체중 등
 }
 
 function scoreAppearanceStyle(styles) {
@@ -327,16 +371,19 @@ export function gradeIncome(income, gender, birthYear) {
   if (!income || income <= 0) return { grade: 'D', note: '미입력' };
   const age = birthYear ? 2026 - Number(birthYear) : 30;
 
+  // 2025-2026 통계청+국세청 기반 연령·성별 소득분위 [S=상위5%, A=15%, B=35%, C=65%]
   let t; // [S, A, B, C] thresholds in 만원
   if (gender === 'M') {
-    if (age <= 29)      t = [10000, 7000, 5000, 3500];
-    else if (age <= 34) t = [15000, 10000, 7000, 5000];
-    else if (age <= 39) t = [20000, 15000, 10000, 7000];
-    else                t = [25000, 20000, 15000, 10000];
+    if (age <= 29)      t = [8000,  5500,  4200, 3200];
+    else if (age <= 34) t = [11000, 7500,  5500, 4000];
+    else if (age <= 39) t = [14000, 9500,  7000, 5000];
+    else if (age <= 44) t = [17000, 12000, 8500, 6000];
+    else                t = [19000, 14000, 9500, 6500];
   } else {
-    if (age <= 29)      t = [7000, 5000, 3500, 2500];
-    else if (age <= 34) t = [10000, 7000, 5000, 3500];
-    else                t = [12000, 10000, 7000, 5000];
+    if (age <= 29)      t = [5500,  4000,  3200, 2600];
+    else if (age <= 34) t = [7000,  5000,  3800, 3000];
+    else if (age <= 39) t = [8000,  6000,  4500, 3400];
+    else                t = [8500,  6500,  4800, 3600];
   }
   const g = _pickGrade(income, t);
   return { grade: g, note: GRADE_NOTES[g] };
@@ -346,13 +393,13 @@ export function gradeFinancial(financial, birthYear) {
   if (!financial || financial <= 0) return { grade: 'D', note: '미입력' };
   const age = birthYear ? 2026 - Number(birthYear) : 30;
 
-  // 2025 가계금융복지조사 기준 금융자산(만원) — 순수 금융자산(예적금+투자)
-  // 20대 중위 ~1500만, 30초 ~3000만, 30후 ~5000만, 40대 ~8000만
-  let t; // [S=상위5%, A=상위15%, B=상위35%, C=중위 수준]
-  if (age <= 29)      t = [20000, 8000, 3000, 1000];
-  else if (age <= 34) t = [50000, 20000, 8000, 3000];
-  else if (age <= 39) t = [80000, 30000, 15000, 5000];
-  else                t = [150000, 50000, 20000, 8000];
+  // 2025 가계금융복지조사 + 신한은행 보통사람 금융생활 보고서 기준
+  // 개인 금융자산(예적금+주식+펀드+연금), 만원 단위
+  let t; // [S=상위5%, A=상위15%, B=상위35%, C=상위65%]
+  if (age <= 29)      t = [15000, 7000,  3500, 1500];
+  else if (age <= 34) t = [30000, 15000, 7000, 3500];
+  else if (age <= 39) t = [50000, 25000, 12000, 6000];
+  else                t = [80000, 40000, 20000, 10000];
 
   const g = _pickGrade(financial, t);
   return { grade: g, note: GRADE_NOTES[g] };
@@ -374,10 +421,8 @@ export function gradeRealEstate(value, birthYear) {
 
 export function gradeHeight(height, gender) {
   if (!height) return { grade: 'C', note: '미입력' };
-  let t;
-  if (gender === 'M') t = [183, 180, 176, 173];
-  else                t = [168, 165, 162, 158];
-  const g = _pickGrade(height, t);
+  const s = scoreHeight(height, gender);
+  const g = s >= 90 ? 'S' : s >= 80 ? 'A' : s >= 70 ? 'B' : s >= 58 ? 'C' : 'D';
   return { grade: g, note: GRADE_NOTES[g] };
 }
 
@@ -549,9 +594,9 @@ export function scoreMember(form, weights, thresholds) {
   const weightMap = Object.fromEntries(weights.map((item) => [item.key, item[genderKey] ?? item.weight]));
   const calcAge = form.birthYear ? 2026 - Number(form.birthYear) : (form.age || 0);
 
-  // 경제력 (남 25% / 여 10%)
-  const incomeScore = scoreIncome(form.income);
-  const financialScore = scoreFinancial(form.financial);
+  // 경제력 (남 25% / 여 10%) — 나이+성별 차등
+  const incomeScore = scoreIncome(form.income, form.gender, form.birthYear);
+  const financialScore = scoreFinancial(form.financial, form.birthYear);
   const realEstateScore = scoreRealEstate(form.realEstate, form.birthYear);
   const wealth = Number(((incomeScore * 40 + financialScore * 35 + realEstateScore * 25) / 100).toFixed(1));
 
@@ -589,8 +634,12 @@ export function scoreMember(form, weights, thresholds) {
   const frScore = scoreFamilyRisk(form.familyRisk);
   const family = Number(((pwScore * 20 + paScore * 30 + pjScore * 15 + ppjScore * 10 + rpScore * 15 + sibScore * 5 + frScore * 5) / 100).toFixed(1));
 
-  // 종합 (성별별 가중치 적용)
-  const overall = Number((
+  // 매니저 가산점 (최대 10점)
+  const bonusItems = Array.isArray(form.managerBonusItems) ? form.managerBonusItems : [];
+  const managerBonus = Math.min(10, bonusItems.reduce((sum, item) => sum + (item.score || 0), 0));
+
+  // 종합 (성별별 가중치 적용 + 가산점)
+  const baseOverall = Number((
     (wealth * (weightMap.wealth || 18) +
      appearance * (weightMap.appearance || 20) +
      career * (weightMap.career || 25) +
@@ -598,9 +647,11 @@ export function scoreMember(form, weights, thresholds) {
      lifestyle * (weightMap.lifestyle || 5) +
      family * (weightMap.family || 20)) / 100
   ).toFixed(1));
+  const overall = Number(Math.min(100, baseOverall + managerBonus).toFixed(1));
 
   return {
     overallScore: overall,
+    managerBonus,
     categories: {
       overall: { score: overall, ...buildPercentile(overall, thresholds) },
       wealth: { score: wealth, ...buildPercentile(wealth, thresholds) },
