@@ -1,37 +1,40 @@
 import { useState, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import { inboxItems, outboxItems } from '../lib/seedData';
+import useAppStore from '../stores/appStore';
 
 const WORKFLOW = ['검토중', '추가정보 요청', '회원 확인중', '수락'];
 
 export function useProposals() {
-  const [inbox, setInbox] = useState(inboxItems);
-  const [outbox, setOutbox] = useState(outboxItems);
+  const inbox = useAppStore((s) => s.inbox);
+  const outbox = useAppStore((s) => s.outbox);
+  const setInbox = useAppStore((s) => s.setInbox);
+  const setOutbox = useAppStore((s) => s.setOutbox);
+  const profile = useAppStore((s) => s.profile);
   const [loading, setLoading] = useState(false);
 
   const fetchInbox = useCallback(async () => {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured() || !profile?.agency_id) return;
     setLoading(true);
     const { data } = await supabase
       .from('proposals')
       .select('*')
-      .eq('to_agency_id', '(SELECT agency_id FROM users WHERE id = auth.uid())')
+      .eq('to_agency_id', profile.agency_id)
       .order('created_at', { ascending: false });
     if (data) setInbox(data);
     setLoading(false);
-  }, []);
+  }, [profile?.agency_id]);
 
   const fetchOutbox = useCallback(async () => {
-    if (!isSupabaseConfigured()) return;
+    if (!isSupabaseConfigured() || !profile?.agency_id) return;
     setLoading(true);
     const { data } = await supabase
       .from('proposals')
       .select('*')
-      .eq('from_agency_id', '(SELECT agency_id FROM users WHERE id = auth.uid())')
+      .eq('from_agency_id', profile.agency_id)
       .order('created_at', { ascending: false });
     if (data) setOutbox(data);
     setLoading(false);
-  }, []);
+  }, [profile?.agency_id]);
 
   const createProposal = useCallback(async (proposal) => {
     if (!isSupabaseConfigured()) {

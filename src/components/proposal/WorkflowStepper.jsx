@@ -1,8 +1,18 @@
 import React from 'react';
-import { CalendarRange } from 'lucide-react';
+import { CalendarRange, XCircle } from 'lucide-react';
 import { workflowSteps } from '../../lib/constants';
 
 export default function WorkflowStepper({ status }) {
+  if (status === '철회') {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+        <div className="flex items-center gap-2 text-sm font-bold text-rose-700">
+          <XCircle size={16} /> 제안 철회됨
+        </div>
+      </div>
+    );
+  }
+
   const stepMap = {
     검토중: 0,
     열람함: 0,

@@ -1,0 +1,1251 @@
+{
+  "M001": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 86.6,
+      "categories": {
+        "overall": {
+          "score": 86.6,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "wealth": {
+          "score": 87,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "appearance": {
+          "score": 82.1,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "family": {
+          "score": 83.3,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 87,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        }
+      },
+      "badges": [
+        "TOP 5% 종합",
+        "TOP 5% 자산",
+        "TOP 5% 직업",
+        "TOP 10% 집안",
+        "TOP 10% 외모"
+      ]
+    }
+  },
+  "M002": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 85,
+      "categories": {
+        "overall": {
+          "score": 85,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "wealth": {
+          "score": 79,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 91.6,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "family": {
+          "score": 82.6,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 83,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        }
+      },
+      "badges": [
+        "TOP 5% 종합",
+        "TOP 1% 외모",
+        "TOP 10% 직업",
+        "TOP 10% 집안"
+      ]
+    }
+  },
+  "M003": {
+    "family": "상위 30%",
+    "grade": {
+      "overallScore": 78.2,
+      "categories": {
+        "overall": {
+          "score": 78.2,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "wealth": {
+          "score": 65,
+          "percentile": "상위 30%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 86.2,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 76,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "career": {
+          "score": 81,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        }
+      },
+      "badges": [
+        "TOP 5% 외모",
+        "TOP 10% 직업"
+      ]
+    }
+  },
+  "M004": {
+    "family": "상위 5%",
+    "grade": {
+      "overallScore": 88.8,
+      "categories": {
+        "overall": {
+          "score": 88.8,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "wealth": {
+          "score": 87,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "appearance": {
+          "score": 85.8,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 90,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "career": {
+          "score": 89,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        }
+      },
+      "badges": [
+        "TOP 5% 종합",
+        "TOP 1% 집안",
+        "TOP 5% 직업",
+        "TOP 5% 자산",
+        "TOP 5% 외모"
+      ]
+    }
+  },
+  "M005": {
+    "family": "상위 5%",
+    "grade": {
+      "overallScore": 81.4,
+      "categories": {
+        "overall": {
+          "score": 81.4,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "wealth": {
+          "score": 60,
+          "percentile": "상위 50%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 87.1,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 90.9,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "career": {
+          "score": 90,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        }
+      },
+      "badges": [
+        "TOP 10% 종합",
+        "TOP 1% 집안",
+        "TOP 1% 직업",
+        "TOP 5% 외모"
+      ]
+    }
+  },
+  "M006": {
+    "family": "상위 5%",
+    "grade": {
+      "overallScore": 90.5,
+      "categories": {
+        "overall": {
+          "score": 90.5,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "wealth": {
+          "score": 89,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "appearance": {
+          "score": 82.1,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "family": {
+          "score": 92,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "career": {
+          "score": 95,
+          "percentile": "상위 0.1%",
+          "badge": "TOP 0.1%"
+        }
+      },
+      "badges": [
+        "TOP 1% 종합",
+        "TOP 0.1% 직업",
+        "TOP 1% 집안",
+        "TOP 5% 자산",
+        "TOP 10% 외모"
+      ]
+    }
+  },
+  "M007": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 83.5,
+      "categories": {
+        "overall": {
+          "score": 83.5,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "wealth": {
+          "score": 76,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 91,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "family": {
+          "score": 81.1,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 82,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        }
+      },
+      "badges": [
+        "TOP 10% 종합",
+        "TOP 1% 외모",
+        "TOP 10% 직업",
+        "TOP 10% 집안"
+      ]
+    }
+  },
+  "M008": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 84.9,
+      "categories": {
+        "overall": {
+          "score": 84.9,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "wealth": {
+          "score": 82,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "appearance": {
+          "score": 85.8,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 80.8,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 85,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        }
+      },
+      "badges": [
+        "TOP 10% 종합",
+        "TOP 5% 외모",
+        "TOP 5% 직업",
+        "TOP 10% 자산",
+        "TOP 10% 집안"
+      ]
+    }
+  },
+  "M009": {
+    "family": "상위 30%",
+    "grade": {
+      "overallScore": 78.9,
+      "categories": {
+        "overall": {
+          "score": 78.9,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "wealth": {
+          "score": 65,
+          "percentile": "상위 30%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 86.8,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 78,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "career": {
+          "score": 82,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        }
+      },
+      "badges": [
+        "TOP 5% 외모",
+        "TOP 10% 직업"
+      ]
+    }
+  },
+  "M010": {
+    "family": "상위 5%",
+    "grade": {
+      "overallScore": 91.3,
+      "categories": {
+        "overall": {
+          "score": 91.3,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "wealth": {
+          "score": 89,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "appearance": {
+          "score": 88.3,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 89.5,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "career": {
+          "score": 95,
+          "percentile": "상위 0.1%",
+          "badge": "TOP 0.1%"
+        }
+      },
+      "badges": [
+        "TOP 1% 종합",
+        "TOP 0.1% 직업",
+        "TOP 5% 집안",
+        "TOP 5% 자산",
+        "TOP 5% 외모"
+      ]
+    }
+  },
+  "M011": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 86.5,
+      "categories": {
+        "overall": {
+          "score": 86.5,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "wealth": {
+          "score": 82,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "appearance": {
+          "score": 86.5,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 81.9,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 90,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        }
+      },
+      "badges": [
+        "TOP 5% 종합",
+        "TOP 1% 직업",
+        "TOP 5% 외모",
+        "TOP 10% 자산",
+        "TOP 10% 집안"
+      ]
+    }
+  },
+  "M012": {
+    "family": "상위 30%",
+    "grade": {
+      "overallScore": 85.2,
+      "categories": {
+        "overall": {
+          "score": 85.2,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "wealth": {
+          "score": 87,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "appearance": {
+          "score": 80.9,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "family": {
+          "score": 75.7,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "career": {
+          "score": 87,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        }
+      },
+      "badges": [
+        "TOP 5% 종합",
+        "TOP 5% 자산",
+        "TOP 5% 직업",
+        "TOP 10% 외모"
+      ]
+    }
+  },
+  "M013": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 88.2,
+      "categories": {
+        "overall": {
+          "score": 88.2,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "wealth": {
+          "score": 84,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "appearance": {
+          "score": 87.8,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 86,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "career": {
+          "score": 91,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        }
+      },
+      "badges": [
+        "TOP 5% 종합",
+        "TOP 1% 직업",
+        "TOP 5% 외모",
+        "TOP 5% 집안",
+        "TOP 10% 자산"
+      ]
+    }
+  },
+  "M014": {
+    "family": "상위 5%",
+    "grade": {
+      "overallScore": 90.4,
+      "categories": {
+        "overall": {
+          "score": 90.4,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "wealth": {
+          "score": 89,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "appearance": {
+          "score": 79.6,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "family": {
+          "score": 91.7,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "career": {
+          "score": 97,
+          "percentile": "상위 0.1%",
+          "badge": "TOP 0.1%"
+        }
+      },
+      "badges": [
+        "TOP 1% 종합",
+        "TOP 0.1% 직업",
+        "TOP 1% 집안",
+        "TOP 5% 자산"
+      ]
+    }
+  },
+  "M015": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 89.2,
+      "categories": {
+        "overall": {
+          "score": 89.2,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "wealth": {
+          "score": 84,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "appearance": {
+          "score": 93.1,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "family": {
+          "score": 83.9,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 92,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        }
+      },
+      "badges": [
+        "TOP 5% 종합",
+        "TOP 1% 외모",
+        "TOP 1% 직업",
+        "TOP 10% 자산",
+        "TOP 10% 집안"
+      ]
+    }
+  },
+  "M016": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 85.2,
+      "categories": {
+        "overall": {
+          "score": 85.2,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "wealth": {
+          "score": 82,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "appearance": {
+          "score": 84.5,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "family": {
+          "score": 81.2,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 87,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        }
+      },
+      "badges": [
+        "TOP 5% 종합",
+        "TOP 5% 직업",
+        "TOP 10% 외모",
+        "TOP 10% 자산",
+        "TOP 10% 집안"
+      ]
+    }
+  },
+  "M017": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 79.8,
+      "categories": {
+        "overall": {
+          "score": 79.8,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "wealth": {
+          "score": 65,
+          "percentile": "상위 30%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 87.7,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 80,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 84,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        }
+      },
+      "badges": [
+        "TOP 5% 외모",
+        "TOP 10% 직업",
+        "TOP 10% 집안"
+      ]
+    }
+  },
+  "M018": {
+    "family": "상위 5%",
+    "grade": {
+      "overallScore": 91,
+      "categories": {
+        "overall": {
+          "score": 91,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "wealth": {
+          "score": 89,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "appearance": {
+          "score": 88.1,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 90.7,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "career": {
+          "score": 93,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        }
+      },
+      "badges": [
+        "TOP 1% 종합",
+        "TOP 1% 직업",
+        "TOP 1% 집안",
+        "TOP 5% 자산",
+        "TOP 5% 외모"
+      ]
+    }
+  },
+  "M019": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 84.5,
+      "categories": {
+        "overall": {
+          "score": 84.5,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "wealth": {
+          "score": 79,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 85,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 83,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 87,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        }
+      },
+      "badges": [
+        "TOP 10% 종합",
+        "TOP 5% 직업",
+        "TOP 5% 외모",
+        "TOP 10% 집안"
+      ]
+    }
+  },
+  "M020": {
+    "family": "상위 30%",
+    "grade": {
+      "overallScore": 84,
+      "categories": {
+        "overall": {
+          "score": 84,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "wealth": {
+          "score": 84,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "appearance": {
+          "score": 81.3,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "family": {
+          "score": 71.3,
+          "percentile": "상위 20%",
+          "badge": null
+        },
+        "career": {
+          "score": 88,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        }
+      },
+      "badges": [
+        "TOP 10% 종합",
+        "TOP 5% 직업",
+        "TOP 10% 자산",
+        "TOP 10% 외모"
+      ]
+    }
+  },
+  "M021": {
+    "family": "상위 5%",
+    "grade": {
+      "overallScore": 90.6,
+      "categories": {
+        "overall": {
+          "score": 90.6,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "wealth": {
+          "score": 87,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "appearance": {
+          "score": 87.4,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 91.3,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "career": {
+          "score": 94,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        }
+      },
+      "badges": [
+        "TOP 1% 종합",
+        "TOP 1% 직업",
+        "TOP 1% 집안",
+        "TOP 5% 외모",
+        "TOP 5% 자산"
+      ]
+    }
+  },
+  "M022": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 82.5,
+      "categories": {
+        "overall": {
+          "score": 82.5,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "wealth": {
+          "score": 79,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 88.1,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 80.4,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 83,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        }
+      },
+      "badges": [
+        "TOP 10% 종합",
+        "TOP 5% 외모",
+        "TOP 10% 직업",
+        "TOP 10% 집안"
+      ]
+    }
+  },
+  "M023": {
+    "family": "상위 30%",
+    "grade": {
+      "overallScore": 76.3,
+      "categories": {
+        "overall": {
+          "score": 76.3,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "wealth": {
+          "score": 60,
+          "percentile": "상위 50%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 87,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 73.7,
+          "percentile": "상위 20%",
+          "badge": null
+        },
+        "career": {
+          "score": 80,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        }
+      },
+      "badges": [
+        "TOP 5% 외모",
+        "TOP 10% 직업"
+      ]
+    }
+  },
+  "M024": {
+    "family": "상위 5%",
+    "grade": {
+      "overallScore": 88.9,
+      "categories": {
+        "overall": {
+          "score": 88.9,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "wealth": {
+          "score": 87,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "appearance": {
+          "score": 77.8,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "family": {
+          "score": 91.1,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "career": {
+          "score": 95,
+          "percentile": "상위 0.1%",
+          "badge": "TOP 0.1%"
+        }
+      },
+      "badges": [
+        "TOP 5% 종합",
+        "TOP 0.1% 직업",
+        "TOP 1% 집안",
+        "TOP 5% 자산"
+      ]
+    }
+  },
+  "M025": {
+    "family": "상위 30%",
+    "grade": {
+      "overallScore": 80.5,
+      "categories": {
+        "overall": {
+          "score": 80.5,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "wealth": {
+          "score": 76,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 84,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "family": {
+          "score": 74.1,
+          "percentile": "상위 20%",
+          "badge": null
+        },
+        "career": {
+          "score": 80,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        }
+      },
+      "badges": [
+        "TOP 10% 종합",
+        "TOP 10% 외모",
+        "TOP 10% 직업"
+      ]
+    }
+  },
+  "M026": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 87.3,
+      "categories": {
+        "overall": {
+          "score": 87.3,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "wealth": {
+          "score": 81,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "appearance": {
+          "score": 85.6,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 82.1,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 95,
+          "percentile": "상위 0.1%",
+          "badge": "TOP 0.1%"
+        }
+      },
+      "badges": [
+        "TOP 5% 종합",
+        "TOP 0.1% 직업",
+        "TOP 5% 외모",
+        "TOP 10% 집안",
+        "TOP 10% 자산"
+      ]
+    }
+  },
+  "M027": {
+    "family": "상위 30%",
+    "grade": {
+      "overallScore": 77.2,
+      "categories": {
+        "overall": {
+          "score": 77.2,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "wealth": {
+          "score": 60,
+          "percentile": "상위 50%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 93.6,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "family": {
+          "score": 70,
+          "percentile": "상위 20%",
+          "badge": null
+        },
+        "career": {
+          "score": 81,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        }
+      },
+      "badges": [
+        "TOP 1% 외모",
+        "TOP 10% 직업"
+      ]
+    }
+  },
+  "M028": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 82,
+      "categories": {
+        "overall": {
+          "score": 82,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "wealth": {
+          "score": 79,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 81.5,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "family": {
+          "score": 81.5,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 82,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        }
+      },
+      "badges": [
+        "TOP 10% 종합",
+        "TOP 10% 직업",
+        "TOP 10% 외모",
+        "TOP 10% 집안"
+      ]
+    }
+  },
+  "M029": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 82.4,
+      "categories": {
+        "overall": {
+          "score": 82.4,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "wealth": {
+          "score": 76,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 84.3,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "family": {
+          "score": 84.6,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 81,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        }
+      },
+      "badges": [
+        "TOP 10% 종합",
+        "TOP 10% 집안",
+        "TOP 10% 외모",
+        "TOP 10% 직업"
+      ]
+    }
+  },
+  "M030": {
+    "family": "상위 5%",
+    "grade": {
+      "overallScore": 90.2,
+      "categories": {
+        "overall": {
+          "score": 90.2,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "wealth": {
+          "score": 87,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "appearance": {
+          "score": 86.6,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 91.7,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        },
+        "career": {
+          "score": 93,
+          "percentile": "상위 1%",
+          "badge": "TOP 1%"
+        }
+      },
+      "badges": [
+        "TOP 1% 종합",
+        "TOP 1% 직업",
+        "TOP 1% 집안",
+        "TOP 5% 자산",
+        "TOP 5% 외모"
+      ]
+    }
+  },
+  "M031": {
+    "family": "상위 15%",
+    "grade": {
+      "overallScore": 83,
+      "categories": {
+        "overall": {
+          "score": 83,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "wealth": {
+          "score": 76,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 85.4,
+          "percentile": "상위 5%",
+          "badge": "TOP 5%"
+        },
+        "family": {
+          "score": 82.2,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "career": {
+          "score": 84,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        }
+      },
+      "badges": [
+        "TOP 10% 종합",
+        "TOP 5% 외모",
+        "TOP 10% 직업",
+        "TOP 10% 집안"
+      ]
+    }
+  },
+  "M032": {
+    "family": "상위 30%",
+    "grade": {
+      "overallScore": 77.9,
+      "categories": {
+        "overall": {
+          "score": 77.9,
+          "percentile": "상위 15%",
+          "badge": null
+        },
+        "wealth": {
+          "score": 65,
+          "percentile": "상위 30%",
+          "badge": null
+        },
+        "appearance": {
+          "score": 82.8,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        },
+        "family": {
+          "score": 73.3,
+          "percentile": "상위 20%",
+          "badge": null
+        },
+        "career": {
+          "score": 84,
+          "percentile": "상위 10%",
+          "badge": "TOP 10%"
+        }
+      },
+      "badges": [
+        "TOP 10% 직업",
+        "TOP 10% 외모"
+      ]
+    }
+  }
+}

@@ -27,12 +27,13 @@ export function useMembers() {
       setMembers(mapped);
       const store = useAppStore.getState();
       if (mapped.length > 0 && !store.selectedMyMember) setSelectedMyMember(mapped[0]);
+      else if (mapped.length === 0) setSelectedMyMember(null);
     }
     setLoading(false);
   }, [setMembers, setSelectedMyMember]);
 
   const createMember = useCallback(async (formData) => {
-    const labels = { overall: '종합', wealth: '자산', appearance: '외모', family: '집안', career: '직업' };
+    const labels = { overall: '종합', wealth: '경제력', appearance: '외모', family: '집안', career: '직업/학력', age: '나이', lifestyle: '라이프스타일' };
     const gradeResult = scoreMember(formData, scoreRuleWeights, badgeThresholds);
     const badges = Object.entries(gradeResult.categories)
       .map(([key, value]) => (value.badge ? `${value.badge} ${labels[key]}` : null))
@@ -49,7 +50,7 @@ export function useMembers() {
       height: formData.height,
       weight: formData.weight,
       bodyType: formData.bodyType,
-      assets: `금융 ${(formData.financial / 10000).toFixed(1)}억 / 부동산 ${formData.realEstate}건`,
+      assets: `금융 ${(formData.financial / 10000).toFixed(1)}억 / 부동산 ${formData.realEstate >= 10000 ? (formData.realEstate / 10000).toFixed(1) + '억' : (formData.realEstate || 0).toLocaleString() + '만'}`,
       family: formData.family,
       appearanceNote: formData.appearance,
       location: formData.location || '서울',
@@ -68,6 +69,11 @@ export function useMembers() {
       nextAction: '초기 상담 필요',
       profileCompletion: 64,
       outboundProposals: 0,
+      reminderCycle: '1주',
+      lastContactDate: new Date().toISOString().split('T')[0],
+      meetings: [],
+      photos: formData.photos || [],
+      notes: '',
     };
 
     if (!isSupabaseConfigured()) {
@@ -110,7 +116,7 @@ export function useMembers() {
       const store = useAppStore.getState();
       const filtered = store.members.filter((m) => m.id !== id);
       setMembers(filtered);
-      if (store.selectedMyMember?.id === id && filtered.length > 0) setSelectedMyMember(filtered[0]);
+      if (store.selectedMyMember?.id === id) setSelectedMyMember(filtered.length > 0 ? filtered[0] : null);
       return { error: null };
     }
 

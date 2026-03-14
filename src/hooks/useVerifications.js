@@ -42,11 +42,14 @@ function mapDbToLocal(row) {
   return {
     id: row.id,
     memberId: row.member_id,
+    memberName: row.member_name || row.member_id,
     type: row.type,
-    owner: '인증팀',
+    owner: row.owner || '인증팀',
     due: row.due_date || '미정',
+    submittedAt: row.submitted_at || '',
     status: row.status,
-    fileUrls: row.file_urls || [],
-    notes: row.notes,
+    docs: row.docs || row.file_urls || [],
+    memo: row.memo || row.notes || '',
+    priority: row.priority || 'normal',
   };
 }

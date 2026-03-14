@@ -1,10 +1,32 @@
 import { useState, useCallback, useEffect } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import useAppStore from '../stores/appStore';
 import { proposalMessages } from '../lib/seedData';
 
+const demoMessageStore = new Map();
+
+function getDemoMessages(proposalId) {
+  if (!proposalId) return [...proposalMessages];
+  if (!demoMessageStore.has(proposalId)) {
+    demoMessageStore.set(proposalId, [...proposalMessages]);
+  }
+  return demoMessageStore.get(proposalId);
+}
+
 export function useMessages(proposalId) {
-  const [messages, setMessages] = useState(proposalMessages);
+  const profile = useAppStore((s) => s.profile);
+  const senderName = profile?.full_name || '이팀장';
+  const [messages, setMessages] = useState(() => {
+    if (!isSupabaseConfigured()) return getDemoMessages(proposalId);
+    return [];
+  });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setMessages(getDemoMessages(proposalId));
+    }
+  }, [proposalId]);
 
   const fetchMessages = useCallback(async () => {
     if (!isSupabaseConfigured() || !proposalId) return;
@@ -20,14 +42,19 @@ export function useMessages(proposalId) {
 
   const sendMessage = useCallback(async (text) => {
     if (!isSupabaseConfigured()) {
+      const now = new Date();
       const newMsg = {
         id: `MSG-${Date.now()}`,
-        sender: '이팀장',
+        sender: senderName,
         role: 'me',
-        time: new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+        date: `${now.getMonth() + 1}/${now.getDate()}`,
+        time: now.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
         text,
       };
-      setMessages((prev) => [...prev, newMsg]);
+      const current = getDemoMessages(proposalId);
+      const updated = [...current, newMsg];
+      if (proposalId) demoMessageStore.set(proposalId, updated);
+      setMessages(updated);
       return { data: newMsg, error: null };
     }
     const { data, error } = await supabase
@@ -37,9 +64,8 @@ export function useMessages(proposalId) {
       .single();
     if (!error) setMessages((prev) => [...prev, mapDbMessage(data)]);
     return { data, error };
-  }, [proposalId]);
+  }, [proposalId, senderName]);
 
-  // Realtime subscription
   useEffect(() => {
     if (!isSupabaseConfigured() || !proposalId) return;
     const channel = supabase
@@ -65,6 +91,7 @@ function mapDbMessage(row) {
     id: row.id,
     sender: row.sender_name || '상대 업체',
     role: row.sender_role || 'partner',
+    date: (() => { const d = new Date(row.created_at); return `${d.getMonth() + 1}/${d.getDate()}`; })(),
     time: new Date(row.created_at).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
     text: row.text,
   };

@@ -11,15 +11,26 @@ export default function LoginPage({ onLogin, isDemoMode }) {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const { error: err } = await onLogin(email, password);
-    if (err) setError(err.message);
-    setLoading(false);
+    try {
+      const { error: err } = await onLogin(email, password);
+      if (err) setError(err.message || '로그인에 실패했습니다.');
+    } catch {
+      setError('로그인 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDemoLogin = async () => {
     setLoading(true);
-    await onLogin('demo@hani.kr', 'demo');
-    setLoading(false);
+    try {
+      const { error: err } = await onLogin('demo@hani.kr', 'demo');
+      if (err) setError(err.message || '데모 로그인에 실패했습니다.');
+    } catch {
+      setError('데모 로그인 중 오류가 발생했습니다.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -39,9 +50,11 @@ export default function LoginPage({ onLogin, isDemoMode }) {
               <label className="mb-1 block text-sm font-medium text-slate-700">이메일</label>
               <input
                 type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                disabled={loading}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 disabled:bg-slate-50 disabled:text-slate-400"
                 placeholder="manager@agency.kr"
               />
             </div>
@@ -49,9 +62,11 @@ export default function LoginPage({ onLogin, isDemoMode }) {
               <label className="mb-1 block text-sm font-medium text-slate-700">비밀번호</label>
               <input
                 type="password"
+                required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100"
+                disabled={loading}
+                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 disabled:bg-slate-50 disabled:text-slate-400"
                 placeholder="••••••••"
               />
             </div>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Activity, Users, Network, Lock, ArrowRightLeft, UserCheck, Wallet, AlertTriangle } from 'lucide-react';
+import { Activity, Users, Network, Lock, ArrowRightLeft, UserCheck, Wallet, AlertTriangle, CalendarDays } from 'lucide-react';
+import { useProposals } from '../../hooks/useProposals';
 
 function SidebarButton({ icon: Icon, label, active, onClick, badge }) {
   return (
@@ -21,6 +22,9 @@ function SidebarButton({ icon: Icon, label, active, onClick, badge }) {
 }
 
 export default function Sidebar({ activeTab, setActiveTab }) {
+  const { inbox } = useProposals();
+  const actionableCount = inbox.filter((p) => p.status === '검토중' || p.status === '추가정보 요청').length;
+
   return (
     <aside className="flex w-72 flex-col bg-slate-900 text-slate-300">
       <div className="border-b border-slate-800 p-6">
@@ -33,8 +37,9 @@ export default function Sidebar({ activeTab, setActiveTab }) {
       <nav className="flex-1 space-y-1 overflow-y-auto py-6">
         <SidebarButton icon={Activity} label="대시보드" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
         <SidebarButton icon={Users} label="우리 회원 (CRM)" active={activeTab === 'myMembers'} onClick={() => setActiveTab('myMembers')} />
-        <SidebarButton icon={Network} label="협업 네트워크 탐색" active={activeTab === 'network'} onClick={() => setActiveTab('network')} />
-        <SidebarButton icon={Lock} label="받은 제안함" active={activeTab === 'inbox'} onClick={() => setActiveTab('inbox')} badge="3" />
+        <SidebarButton icon={CalendarDays} label="캘린더" active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} />
+        <SidebarButton icon={Network} label="매칭 검색" active={activeTab === 'network'} onClick={() => setActiveTab('network')} />
+        <SidebarButton icon={Lock} label="받은 제안함" active={activeTab === 'inbox'} onClick={() => setActiveTab('inbox')} badge={actionableCount > 0 ? String(actionableCount) : null} />
         <SidebarButton icon={ArrowRightLeft} label="보낸 제안함" active={activeTab === 'outbox'} onClick={() => setActiveTab('outbox')} />
         <SidebarButton icon={UserCheck} label="인증센터" active={activeTab === 'verify'} onClick={() => setActiveTab('verify')} />
         <SidebarButton icon={Wallet} label="정산관리" active={activeTab === 'settlement'} onClick={() => setActiveTab('settlement')} />
